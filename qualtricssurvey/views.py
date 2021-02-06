@@ -24,20 +24,65 @@ class QualtricsSurveyViewMixin(
         """
         context = context or {}
         context = dict(context)
-        param_name = self.param_name
-        anon_user_id = self.get_anon_id()
-        user_id_string = ''
-        if param_name:
-            user_id_string = ("?{param_name}={anon_user_id}").format(
-                param_name=param_name,
-                anon_user_id=anon_user_id,
-            )
+        # param_name = self.param_name
+        # anon_user_id = self.get_anon_id()
+        # user_id_string = ''
+        # if param_name:
+        #     user_id_string = ("{param_name}={anon_user_id}").format(
+        #         param_name=param_name,
+        #         anon_user_id=anon_user_id,
+        #     )
+        param_course_id = self.get_course_id()
+        course_id_string = ("course_id={param_course_id}").format(
+            param_course_id=param_course_id,
+        )
+        param_course_name = self.get_course_name()
+        course_name_string = ("course_name={param_course_name}").format(
+            param_course_name=param_course_name,
+        )
+        param_course_org = self.get_course_org()
+        course_org_string = ("course_org={param_course_org}").format(
+            param_course_org=param_course_org,
+        )
+        param_course_number = self.get_course_number()
+        course_number_string = ("course_number={param_course_number}").format(
+            param_course_number=param_course_number,
+        )
+        param_course_run = self.get_course_run() 
+        course_run_string = ("course_run={param_course_run}").format(
+            param_course_run=param_course_run,
+        )
+        param_course_term = self.get_course_term()
+        course_term_string = ("course_term={param_course_term}").format(
+            param_course_term=param_course_term,
+        )
+        param_course_institution = ''
+        course_institution_string = ("course_institution={param_course_institution}").format(
+            param_course_institution=param_course_institution,
+        )
+        param_course_instructor = ''
+        course_instructor_string = ("course_instructor={param_course_instructor}").format(
+            param_course_instructor=param_course_instructor,
+        )
+        param_display_meta = '1' if self.should_show_meta_information() else '0'
+        show_meta_information_string = ("display_meta={param_display_meta}").format(
+            param_display_meta=param_display_meta,
+        )
         context.update({
             'xblock_id': str(self.scope_ids.usage_id),
             'survey_id': self.survey_id,
             'your_university': self.your_university,
-            'link_text': self.link_text,
-            'user_id_string': user_id_string,
+            # 'link_text': self.link_text,
+            # 'user_id_string': user_id_string,
+            'course_id_string': course_id_string,
+            'course_name_string': course_name_string,
+            'course_org_string': course_org_string,
+            'course_number_string': course_number_string,
+            'course_run_string': course_run_string,
+            'course_term_string': course_term_string,
+            'course_institution_string': course_institution_string,
+            'course_instructor_string': course_instructor_string,
+            'show_meta_information_string': show_meta_information_string,
             'message': self.message,
         })
         return context
