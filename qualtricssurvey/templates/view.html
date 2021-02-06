@@ -1,12 +1,18 @@
 <div class="qualtricssurvey_block">
+  <!--
     <p>{{message}}</p>
     <p>
         <a
           class="button primary-button qualtrics-button"
-          href="https://{{your_university}}.qualtrics.com/jfe/form/{{survey_id}}{{user_id_string}}"
+          href="https://{{your_university}}.qualtrics.com/jfe/form/{{survey_id}}?{{user_id_string}}"
           target="_blank"
         >
           {{link_text}}
         </a>
     </p>
+  -->
+    <div class="qualtrics-message">
+        <p>{{message}}</p>
+    </div>
+    <iframe src="https://{{your_university}}.ca1.qualtrics.com/jfe/form/{{survey_id}}?{{course_id_string}}&amp;{{course_name_string}}&amp;{{course_org_string}}&amp;{{course_number_string}}&amp;{{course_run_string}}&amp;{{course_term_string}}&amp;{{course_institution_string}}&amp;{{course_instructor_string}}&amp;{{show_meta_information_string}}" />
 </div>
