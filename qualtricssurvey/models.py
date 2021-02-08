@@ -76,6 +76,7 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         'course_number_override',
         'course_run_override',
         'course_term_override',
+        'show_simulation_exists',
         'show_meta_information',
     ]
     course_id_override = String(
@@ -168,6 +169,13 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     #         'If blank, User ID is ommitted from the url.'
     #     ),
     # )
+    show_simulation_exists = Boolean(
+        display_name=_("Simulation Exists"),
+        help=_("Displays simulation questions from the survey when the query parameters is passed. "
+               "This is disabled by default."),
+        scope=Scope.settings,
+        default=False
+    )
     show_meta_information = Boolean(
         display_name=_("Show Qualtrics Survey Meta Information"),
         help=_("Displays 'meta' information about the survey to show query parameters passed. "
@@ -274,6 +282,14 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
             return six.text_type(six.moves.urllib.parse.quote(self.course_term_override))
 
         return self.course_term_override
+
+    # pylint: disable=no-member
+    def should_show_simulation_exists(self):
+        """
+        Return True/False to indicate whether to show the "Simulation Exists" questions.
+        """
+        return self.show_simulation_exists
+
 
     # pylint: disable=no-member
     def should_show_meta_information(self):
