@@ -57,10 +57,11 @@ class QualtricsSurveyViewMixin(
             param_course_term=param_course_term,
         )
         param_course_institution = ''
+        param_course_institution = self.get_course_institution()
         course_institution_string = ("course_institution={param_course_institution}").format(
             param_course_institution=param_course_institution,
         )
-        param_course_instructor = ''
+        param_course_instructor = self.get_course_instructor()
         course_instructor_string = ("course_instructor={param_course_instructor}").format(
             param_course_instructor=param_course_instructor,
         )

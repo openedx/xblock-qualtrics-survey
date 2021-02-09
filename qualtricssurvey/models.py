@@ -76,6 +76,8 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         'course_number_override',
         'course_run_override',
         'course_term_override',
+        'course_institution_override',
+        'course_instructor_override',
         'show_simulation_exists',
         'show_meta_information',
     ]
@@ -134,6 +136,25 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
             'Default value of %%COURSE_TERM%% will pull automatically from the platform.'
         ),
     )
+    course_institution_override = String(
+        display_name=_('Course Institution:'),
+        default='None',
+        scope=Scope.settings,
+        help=_(
+            'Enter in the Open edX course institution override (e.g. "Clemson").'
+            'Default value will be set to None'
+        ),
+    )
+    course_instructor_override = String(
+        display_name=_('Course Instructor:'),
+        default='None',
+        scope=Scope.settings,
+        help=_(
+            'Enter in the Open edX course instructor override.'
+            'Default value will be set to None'
+        ),
+    )
+
     display_name = String(
         display_name=_('Display Name:'),
         default='Qualtrics Survey',
@@ -284,6 +305,21 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         return self.course_term_override
 
     # pylint: disable=no-member
+
+    def get_course_institution(self):
+        """
+        Return the course_institution of the course where this XBlock is used.
+        Substitute %%-encoded keywords in the XBlock field with actual string.
+        """
+        return self.course_institution_override
+
+    def get_course_instructor(self):
+        """
+        Return the course_instructor of the course where this XBlock is used.
+        Substitute %%-encoded keywords in the XBlock field with actual string.
+        """
+        return self.course_instructor_override
+
     def should_show_simulation_exists(self):
         """
         Return True/False to indicate whether to show the "Simulation Exists" questions.
