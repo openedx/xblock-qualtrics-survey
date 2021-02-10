@@ -58,6 +58,36 @@ class CourseDetailsXBlockMixin(object):
 
         return str(raw_course_id.run)
     
+    @property
+    def course_start_date(self):
+        try:
+            raw_course_id = getattr(self.runtime, 'course_id', None) 
+        except AttributeError:
+            return None
+        
+        datetime = str(CourseOverview.get_from_id(raw_course_id).start_date)
+        if " " in datetime:
+            date = datetime.split(' ')
+            return date[0]
+        else :
+            return datetime
+
+    @property
+    def course_end_date(self):
+        try:
+            raw_course_id = getattr(self.runtime, 'course_id', None) 
+        except AttributeError:
+            return None
+        datetime = str(CourseOverview.get_from_id(raw_course_id).end_date)
+        if " " in datetime:
+            date = datetime.split(' ')
+            return date[0]
+        else :
+            return datetime
+        #return defaultfilters.date(CourseOverview.get_from_id(raw_course_id).end_date, "DATE_FORMAT")
+       
+
+    
 class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     """
     Handle data access for XBlock instances
@@ -134,6 +164,24 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         help=_(
             'Enter in the Open edX course term override (e.g. "2019_Fall" or "2021_Spring").'
             'Default value of %%COURSE_TERM%% will pull automatically from the platform.'
+        ),
+    )
+    course_start_date_override = String(
+        display_name=_('Course Start Date:'),
+        default='%%COURSE_START_DATE%%',
+        scope=Scope.settings,
+        help=_(
+            'Enter in the Open edX course start date override (e.g. "08/20/2019").'
+            'Default value of %%COURSE_START_DATE%% will pull automatically from the platform.'
+        ),
+    )
+    course_end_date_override = String(
+        display_name=_('Course End Date:'),
+        default='%%COURSE_END_DATE%%',
+        scope=Scope.settings,
+        help=_(
+            'Enter in the Open edX course start date override (e.g. "08/20/2019").'
+            'Default value of %%COURSE_START_DATE%% will pull automatically from the platform.'
         ),
     )
     course_institution_override = String(
@@ -304,7 +352,28 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
 
         return self.course_term_override
 
-    # pylint: disable=no-member
+    def get_course_start_date(self):
+        """
+        Return the course_start_date of the course where this XBlock is used.
+        Substitute %%-encoded keywords in the XBlock field with actual string.
+        """
+        if self.course_start_date_override is not None:
+            # Substitute all %%-encoded keywords in the message body
+            return six.text_type(six.moves.urllib.parse.quote(self.course_start_date_override.replace("%%COURSE_START_DATE%%", self.course_start_date)))
+
+        return self.course_start_date_override
+
+    def get_course_end_date(self):
+        """
+        Return the course_start_date of the course where this XBlock is used.
+        Substitute %%-encoded keywords in the XBlock field with actual string.
+        """
+        if self.course_end_date_override is not None:
+            # Substitute all %%-encoded keywords in the message body
+            return six.text_type(six.moves.urllib.parse.quote(self.course_end_date_override.replace("%%COURSE_END_DATE%%", self.course_end_date)))
+
+        return self.course_end_date_override
+        
 
     def get_course_institution(self):
         """

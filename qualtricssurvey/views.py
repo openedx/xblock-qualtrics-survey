@@ -56,7 +56,14 @@ class QualtricsSurveyViewMixin(
         course_term_string = ("course_term={param_course_term}").format(
             param_course_term=param_course_term,
         )
-        param_course_institution = ''
+        param_course_start_date = self.get_course_start_date()
+        course_start_date_string = ("course_start_date={param_course_start_date}").format(
+            param_course_start_date=param_course_start_date,
+        )
+        param_course_end_date = self.get_course_end_date()
+        course_end_date_string = ("course_end_date={param_course_end_date}").format(
+            param_course_end_date=param_course_end_date,
+        )
         param_course_institution = self.get_course_institution()
         course_institution_string = ("course_institution={param_course_institution}").format(
             param_course_institution=param_course_institution,
@@ -85,6 +92,8 @@ class QualtricsSurveyViewMixin(
             'course_number_string': course_number_string,
             'course_run_string': course_run_string,
             'course_term_string': course_term_string,
+            'course_start_date_string': course_start_date_string,
+            'course_end_date_string': course_end_date_string,
             'course_institution_string': course_institution_string,
             'course_instructor_string': course_instructor_string,
             'show_simulation_exists_string': show_simulation_exists_string,
