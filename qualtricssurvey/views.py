@@ -72,6 +72,10 @@ class QualtricsSurveyViewMixin(
         course_instructor_string = ("course_instructor={param_course_instructor}").format(
             param_course_instructor=param_course_instructor,
         )
+        param_course_module_name = self.get_course_module_name()
+        course_module_name_string = ("module_name={param_course_module_name}").format(
+            param_course_module_name=param_course_module_name,
+        )
         param_display_simulation_exists = '1' if self.should_show_simulation_exists() else '0'
         show_simulation_exists_string = ("simulation_exists={param_display_simulation_exists}").format(
             param_display_simulation_exists=param_display_simulation_exists,
@@ -96,8 +100,10 @@ class QualtricsSurveyViewMixin(
             'course_end_date_string': course_end_date_string,
             'course_institution_string': course_institution_string,
             'course_instructor_string': course_instructor_string,
+            'course_module_name_string': course_module_name_string,
             'show_simulation_exists_string': show_simulation_exists_string,
             'show_meta_information_string': show_meta_information_string,
             'message': self.message,
         })
+        
         return context

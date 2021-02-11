@@ -9,10 +9,49 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from xblock.fields import Scope
 from xblock.fields import Boolean, String
 
+from opaque_keys.edx.keys import UsageKey
+from xmodule.modulestore.django import modulestore
+
 class CourseDetailsXBlockMixin(object):
     """
     Handles all course related information from the platform.
     """
+
+    def _get_context(self, block):
+        """
+        Return section, subsection, and unit names for `block`.
+        """
+        block_names_by_type = {}
+        block_iter = block
+        while block_iter:
+            block_iter_type = block_iter.scope_ids.block_type
+            block_names_by_type[block_iter_type] = block_iter.display_name_with_default
+            block_iter = block_iter.get_parent() if block_iter.parent else None
+        section_name = block_names_by_type.get('chapter', '')
+        subsection_name = block_names_by_type.get('sequential', '')
+        unit_name = block_names_by_type.get('vertical', '')
+        return section_name, subsection_name, unit_name
+
+    def _get_context_course_advanced_settings(self, block):
+        """
+        Return CMS Advanced Settings
+        """
+        block_iter = block
+        qs_course_institution = 'None'
+        qs_course_instructor = 'None'
+        qs_course_term = 'perpetual'
+        while block_iter:
+            block_iter_type = block_iter.scope_ids.block_type
+    
+            if block_iter_type == 'course':  
+                qs_course_institution = block_iter.institution
+                qs_course_instructor = block_iter.instructor_info
+                qs_course_term = block_iter.term
+            
+            block_iter = block_iter.get_parent() if block_iter.parent else None
+
+        return qs_course_institution, qs_course_instructor, qs_course_term
+
     @property
     def course_id(self):
         try:
@@ -30,6 +69,18 @@ class CourseDetailsXBlockMixin(object):
             return None
 
         return CourseOverview.get_from_id(raw_course_id).display_name
+
+    @property
+    def module_name(self):
+        source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
+        try:
+            usage_key = UsageKey.from_string(source_block_id_str)
+        except InvalidKeyError:
+            raise ValueError("Could not find the specified Block ID.")
+        
+        src_block = modulestore().get_item(usage_key)
+        section_name, subsection_name, unit_name = self._get_context(src_block)
+        return section_name
 
     @property
     def course_org(self):
@@ -84,9 +135,42 @@ class CourseDetailsXBlockMixin(object):
             return date[0]
         else :
             return datetime
-        #return defaultfilters.date(CourseOverview.get_from_id(raw_course_id).end_date, "DATE_FORMAT")
-       
 
+    @property
+    def course_institution(self):
+            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
+            try:
+                usage_key = UsageKey.from_string(source_block_id_str)
+            except InvalidKeyError:
+                raise ValueError("Could not find the specified Block ID.")
+            
+            src_block = modulestore().get_item(usage_key)
+            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
+            return institution
+    
+    @property
+    def course_instructor(self):
+            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
+            try:
+                usage_key = UsageKey.from_string(source_block_id_str)
+            except InvalidKeyError:
+                raise ValueError("Could not find the specified Block ID.")
+    
+            src_block = modulestore().get_item(usage_key)
+            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
+            return instructor
+
+    @property
+    def course_term(self):
+            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
+            try:
+                usage_key = UsageKey.from_string(source_block_id_str)
+            except InvalidKeyError:
+                raise ValueError("Could not find the specified Block ID.")
+            
+            src_block = modulestore().get_item(usage_key)
+            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
+            return term
     
 class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     """
@@ -350,7 +434,7 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
             # Substitute all %%-encoded keywords in the message body
             return six.text_type(six.moves.urllib.parse.quote(self.course_term_override))
 
-        return self.course_term_override
+        return self.course_term
 
     def get_course_start_date(self):
         """
@@ -380,14 +464,22 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         Return the course_institution of the course where this XBlock is used.
         Substitute %%-encoded keywords in the XBlock field with actual string.
         """
-        return self.course_institution_override
+        return self.course_institution
 
     def get_course_instructor(self):
         """
         Return the course_instructor of the course where this XBlock is used.
         Substitute %%-encoded keywords in the XBlock field with actual string.
         """
-        return self.course_instructor_override
+        instructor = self.course_instructor
+        names = instructor.get('instructors')
+        return names[0]
+    
+    def get_course_module_name(self):
+        """
+        Return the module_name of the course where this XBlock is used.
+        """
+        return self.module_name
 
     def should_show_simulation_exists(self):
         """
