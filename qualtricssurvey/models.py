@@ -3,6 +3,7 @@ Handle data access logic for the XBlock
 """
 
 import six
+from datetime import datetime
 
 from django.utils.translation import ugettext_lazy as _
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
@@ -44,9 +45,9 @@ class CourseDetailsXBlockMixin(object):
             block_iter_type = block_iter.scope_ids.block_type
     
             if block_iter_type == 'course':  
-                qs_course_institution = block_iter.institution
-                qs_course_instructor = block_iter.instructor_info
-                qs_course_term = block_iter.term
+                qs_course_institution = block_iter.qualtrics_institution
+                qs_course_instructor = block_iter.qualtrics_instructor_info
+                qs_course_term = block_iter.qualtrics_term
             
             block_iter = block_iter.get_parent() if block_iter.parent else None
 
@@ -72,7 +73,7 @@ class CourseDetailsXBlockMixin(object):
 
     @property
     def module_name(self):
-        source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
+        source_block_id_str = str(self.location)
         try:
             usage_key = UsageKey.from_string(source_block_id_str)
         except InvalidKeyError:
@@ -115,7 +116,10 @@ class CourseDetailsXBlockMixin(object):
             raw_course_id = getattr(self.runtime, 'course_id', None) 
         except AttributeError:
             return None
-        
+        if (str(CourseOverview.get_from_id(raw_course_id).end_date) != 'None'):
+            return  str(CourseOverview.get_from_id(raw_course_id).start_date)
+        return  str(CourseOverview.get_from_id(raw_course_id).start_date.date())
+
         datetime = str(CourseOverview.get_from_id(raw_course_id).start_date)
         if " " in datetime:
             date = datetime.split(' ')
@@ -129,49 +133,52 @@ class CourseDetailsXBlockMixin(object):
             raw_course_id = getattr(self.runtime, 'course_id', None) 
         except AttributeError:
             return None
-        datetime = str(CourseOverview.get_from_id(raw_course_id).end_date)
-        if " " in datetime:
+        if (str(CourseOverview.get_from_id(raw_course_id).end_date) != 'None'):
+            return  str(CourseOverview.get_from_id(raw_course_id).end_date.date())
             date = datetime.split(' ')
             return date[0]
         else :
             return datetime
 
+        return  str(CourseOverview.get_from_id(raw_course_id).end_date)
+    
     @property
     def course_institution(self):
-            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
-            try:
-                usage_key = UsageKey.from_string(source_block_id_str)
-            except InvalidKeyError:
-                raise ValueError("Could not find the specified Block ID.")
+        source_block_id_str = str(self.location)
+        try:
+            usage_key = UsageKey.from_string(source_block_id_str)
+        except InvalidKeyError:
+            raise ValueError("Could not find the specified Block ID.")
             
-            src_block = modulestore().get_item(usage_key)
-            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
-            return institution
+        src_block = modulestore().get_item(usage_key)
+        institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
+        return institution
     
     @property
     def course_instructor(self):
-            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
-            try:
-                usage_key = UsageKey.from_string(source_block_id_str)
-            except InvalidKeyError:
-                raise ValueError("Could not find the specified Block ID.")
+        source_block_id_str = str(self.location)
+        try:
+            usage_key = UsageKey.from_string(source_block_id_str)
+        except InvalidKeyError:
+            raise ValueError("Could not find the specified Block ID.")
     
-            src_block = modulestore().get_item(usage_key)
-            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
-            return instructor
+        src_block = modulestore().get_item(usage_key)
+        institution, instructor, term = self._get_context_course_advanced_settings(src_block)
+        
+        return instructor
 
     @property
     def course_term(self):
-            source_block_id_str = "block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd"
-            try:
-                usage_key = UsageKey.from_string(source_block_id_str)
-            except InvalidKeyError:
-                raise ValueError("Could not find the specified Block ID.")
+        source_block_id_str = str(self.location)
+        try:
+            usage_key = UsageKey.from_string(source_block_id_str)
+        except InvalidKeyError:
+            raise ValueError("Could not find the specified Block ID.")
             
-            src_block = modulestore().get_item(usage_key)
-            institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
-            return term
-    
+        src_block = modulestore().get_item(usage_key)
+        institution, instructor, term = self._get_context_course_advanced_settings(src_block)
+        return term
+
 class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     """
     Handle data access for XBlock instances
@@ -190,6 +197,8 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         'course_number_override',
         'course_run_override',
         'course_term_override',
+        'course_start_date_override',
+        'course_end_date_override',
         'course_institution_override',
         'course_instructor_override',
         'show_simulation_exists',
@@ -282,7 +291,7 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         default='None',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course instructor override.'
+            'Enter in the Open edX course instructor override. If there are multiple instructors use a comma to seperate values.'
             'Default value will be set to None'
         ),
     )
@@ -431,8 +440,9 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         Substitute %%-encoded keywords in the XBlock field with actual string.
         """
         if self.course_term_override is not None:
+            if self.course_term_override != 'perpetual':
             # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_term_override))
+                return self.course_term_override
 
         return self.course_term
 
@@ -464,6 +474,11 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         Return the course_institution of the course where this XBlock is used.
         Substitute %%-encoded keywords in the XBlock field with actual string.
         """
+        if self.course_institution_override is not None:
+            if self.course_institution_override != "None": #self.course_institution_override.default:
+            # Substitute all %%-encoded keywords in the message body
+                return self.course_institution_override
+
         return self.course_institution
 
     def get_course_instructor(self):
@@ -471,9 +486,21 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         Return the course_instructor of the course where this XBlock is used.
         Substitute %%-encoded keywords in the XBlock field with actual string.
         """
-        instructor = self.course_instructor
-        names = instructor.get('instructors')
-        return names[0]
+        if self.course_instructor_override is not None:
+            if self.course_instructor_override != "None":
+                names = str(self.course_instructor_override)
+                names =names.replace(" ", "")
+
+                return names
+
+        instructors = self.course_instructor
+        encoded_names = str(instructors.get('instructors'))
+        encoded_names = names.replace("'", "")
+        encoded_names = names.replace("[", "")
+        encoded_names = names.replace("]", "")
+        encoded_names = names.replace(" ", "")
+    
+        return encoded_names
     
     def get_course_module_name(self):
         """

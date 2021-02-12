@@ -6,7 +6,7 @@ from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from .mixins.fragment import XBlockFragmentBuilderMixin
 
-
+#xmodule.course_module import CourseFields
 class QualtricsSurveyViewMixin(
         XBlockFragmentBuilderMixin,
         StudioEditableXBlockMixin,
@@ -85,7 +85,6 @@ class QualtricsSurveyViewMixin(
             param_display_meta=param_display_meta,
         )
         context.update({
-            'xblock_id': str(self.scope_ids.usage_id),
             'survey_id': self.survey_id,
             'your_university': self.your_university,
             # 'link_text': self.link_text,
@@ -101,6 +100,7 @@ class QualtricsSurveyViewMixin(
             'course_institution_string': course_institution_string,
             'course_instructor_string': course_instructor_string,
             'course_module_name_string': course_module_name_string,
+            #'course_module_id_string': self.module_id,
             'show_simulation_exists_string': show_simulation_exists_string,
             'show_meta_information_string': show_meta_information_string,
             'message': self.message,
