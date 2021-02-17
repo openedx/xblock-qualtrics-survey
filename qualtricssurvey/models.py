@@ -8,7 +8,7 @@ from datetime import datetime
 from django.utils.translation import ugettext_lazy as _
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xblock.fields import Scope
-from xblock.fields import Boolean, String
+from xblock.fields import Boolean, List, String
 
 from opaque_keys.edx.keys import UsageKey
 from xmodule.modulestore.django import modulestore
@@ -46,7 +46,7 @@ class CourseDetailsXBlockMixin(object):
     
             if block_iter_type == 'course':  
                 qs_course_institution = block_iter.qualtrics_institution
-                qs_course_instructor = block_iter.qualtrics_instructor_info
+                qs_course_instructor = block_iter.qualtrics_instructors
                 qs_course_term = block_iter.qualtrics_term
             
             block_iter = block_iter.get_parent() if block_iter.parent else None
@@ -115,32 +115,34 @@ class CourseDetailsXBlockMixin(object):
         try:
             raw_course_id = getattr(self.runtime, 'course_id', None) 
         except AttributeError:
-            return None
-        if (str(CourseOverview.get_from_id(raw_course_id).end_date) != 'None'):
-            return  str(CourseOverview.get_from_id(raw_course_id).start_date)
-        return  str(CourseOverview.get_from_id(raw_course_id).start_date.date())
+            return ""
+        # if (str(CourseOverview.get_from_id(raw_course_id).end_date) != 'None'):
+        #     return  str(CourseOverview.get_from_id(raw_course_id).start_date)
+        # return  str(CourseOverview.get_from_id(raw_course_id).start_date.date())
 
-        datetime = str(CourseOverview.get_from_id(raw_course_id).start_date)
-        if " " in datetime:
-            date = datetime.split(' ')
-            return date[0]
-        else :
-            return datetime
+        # datetime = str(CourseOverview.get_from_id(raw_course_id).start_date)
+        # if " " in datetime:
+        #     date = datetime.split(' ')
+        #     return date[0]
+        # else:
+        #     return datetime
+
+        if CourseOverview.get_from_id(raw_course_id).start_date is None:
+            return ""
+
+        return str(CourseOverview.get_from_id(raw_course_id).start_date.date())
 
     @property
     def course_end_date(self):
         try:
             raw_course_id = getattr(self.runtime, 'course_id', None) 
         except AttributeError:
-            return None
-        if (str(CourseOverview.get_from_id(raw_course_id).end_date) != 'None'):
-            return  str(CourseOverview.get_from_id(raw_course_id).end_date.date())
-            date = datetime.split(' ')
-            return date[0]
-        else :
-            return datetime
+            return ""
 
-        return  str(CourseOverview.get_from_id(raw_course_id).end_date)
+        if CourseOverview.get_from_id(raw_course_id).end_date is None:
+            return ""
+
+        return str(CourseOverview.get_from_id(raw_course_id).end_date.date())
     
     @property
     def course_institution(self):
@@ -151,11 +153,11 @@ class CourseDetailsXBlockMixin(object):
             raise ValueError("Could not find the specified Block ID.")
             
         src_block = modulestore().get_item(usage_key)
-        institution,  instructor, term = self._get_context_course_advanced_settings(src_block)
+        institution, instructors, term = self._get_context_course_advanced_settings(src_block)
         return institution
     
     @property
-    def course_instructor(self):
+    def course_instructors(self):
         source_block_id_str = str(self.location)
         try:
             usage_key = UsageKey.from_string(source_block_id_str)
@@ -163,9 +165,9 @@ class CourseDetailsXBlockMixin(object):
             raise ValueError("Could not find the specified Block ID.")
     
         src_block = modulestore().get_item(usage_key)
-        institution, instructor, term = self._get_context_course_advanced_settings(src_block)
+        institution, instructors, term = self._get_context_course_advanced_settings(src_block)
         
-        return instructor
+        return instructors
 
     @property
     def course_term(self):
@@ -176,7 +178,7 @@ class CourseDetailsXBlockMixin(object):
             raise ValueError("Could not find the specified Block ID.")
             
         src_block = modulestore().get_item(usage_key)
-        institution, instructor, term = self._get_context_course_advanced_settings(src_block)
+        institution, instructors, term = self._get_context_course_advanced_settings(src_block)
         return term
 
 class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
@@ -200,102 +202,91 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         'course_start_date_override',
         'course_end_date_override',
         'course_institution_override',
-        'course_instructor_override',
+        'course_instructors_override',
         'show_simulation_exists',
         'show_meta_information',
     ]
     course_id_override = String(
         display_name=_('Course Identifier:'),
-        default='%%COURSE_ID%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course identifier override with '
-            'following format: {key type}:{org}+{course}+{run} (e.g. course-v1:edX+DemoX+2014) or {org}/{course}/{run} (e.g. edX/DemoX/2014). '
-            'Default value of %%COURSE_ID%% will pull automatically from the platform.'
+            'Enter in the course identifier override with '
+            'following format: {key type}:{org}+{course}+{run} (e.g. course-v1:edX+DemoX+2014) or {org}/{course}/{run} (e.g. edX/DemoX/2014).'
         ),
     )
     course_name_override = String(
         display_name=_('Course Name:'),
-        default='%%COURSE_NAME%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course name override. '
-            'Default value of %%COURSE_NAME%% will pull automatically from the platform.'
+            'Enter in the course name override.'
         ),
     )
     course_number_override = String(
         display_name=_('Course Number:'),
-        default='%%COURSE_NUMBER%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course number override.'
-            'Default value of %%COURSE_NUMBER%% will pull automatically from the platform.'
+            'Enter in the course number override.'
         ),
     )
     course_org_override = String(
         display_name=_('Course Organization:'),
-        default='%%COURSE_ORG%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course organization override.'
-            'Default value of %%COURSE_ORG%% will pull automatically from the platform.'
+            'Enter in the course organization override.'
         ),
     )
     course_run_override = String(
         display_name=_('Course Run:'),
-        default='%%COURSE_RUN%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course run override.'
-            'Default value of %%COURSE_RUN%% will pull automatically from the platform.'
+            'Enter in the course run override.'
         ),
     )
     course_term_override = String(
         display_name=_('Course Term:'),
-        default='perpetual',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course term override (e.g. "2019_Fall" or "2021_Spring").'
-            'Default value of %%COURSE_TERM%% will pull automatically from the platform.'
+            'Enter in the course term override (e.g. "2015_Fall" or "2021_Spring").'
         ),
     )
     course_start_date_override = String(
         display_name=_('Course Start Date:'),
-        default='%%COURSE_START_DATE%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course start date override (e.g. "08/20/2019").'
-            'Default value of %%COURSE_START_DATE%% will pull automatically from the platform.'
+            'Enter in the course start date override (e.g. "2019-08-20").'
         ),
     )
     course_end_date_override = String(
         display_name=_('Course End Date:'),
-        default='%%COURSE_END_DATE%%',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course start date override (e.g. "08/20/2019").'
-            'Default value of %%COURSE_START_DATE%% will pull automatically from the platform.'
+            'Enter in the course start date override (e.g. "2019-08-20").'
         ),
     )
     course_institution_override = String(
         display_name=_('Course Institution:'),
-        default='None',
+        default='',
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course institution override (e.g. "Clemson").'
-            'Default value will be set to None'
+            'Enter in the course institution override (e.g. "Clemson").'
         ),
     )
-    course_instructor_override = String(
-        display_name=_('Course Instructor:'),
-        default='None',
+    course_instructors_override = List(
+        display_name=_('Course Instructor(s):'),
+        default=[],
         scope=Scope.settings,
         help=_(
-            'Enter in the Open edX course instructor override. If there are multiple instructors use a comma to seperate values.'
-            'Default value will be set to None'
+            'Enter in the course instructor(s) override. If there are multiple instructors use a comma to seperate values. (e.g. ["John Smith", "Sally Smith"])'
         ),
     )
-
     display_name = String(
         display_name=_('Display Name:'),
         default='Qualtrics Survey',
@@ -377,130 +368,108 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     def get_course_id(self):
         """
         Return the course_id of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_id_override is not None and self.course_id is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_id_override.replace("%%COURSE_ID%%", self.course_id)))
+        if self.course_id_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_id_override))
             
-        return six.text_type(six.moves.urllib.parse.quote(self.course_id_override))
+        return six.text_type(six.moves.urllib.parse.quote(self.course_id))
 
     # pylint: disable=no-member
     def get_course_name(self):
         """
         Return the course_name of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_name_override is not None and self.course_name is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_name_override.replace("%%COURSE_NAME%%", self.course_name)))
+        if self.course_name_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_name_override))
 
-        return self.course_name_override 
-
+        return six.text_type(six.moves.urllib.parse.quote(self.course_name))
+        
     # pylint: disable=no-member
     def get_course_org(self):
         """
         Return the course_org of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_org_override is not None and self.course_org is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_org_override.replace("%%COURSE_ORG%%", self.course_org)))
+        if self.course_org_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_org_override))
 
-        return self.course_org_override
+        return six.text_type(six.moves.urllib.parse.quote(self.course_org))
 
     # pylint: disable=no-member
     def get_course_number(self):
         """
         Return the course_number of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_number_override is not None and self.course_number is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_number_override.replace("%%COURSE_NUMBER%%", self.course_number)))
+        if self.course_number_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_number_override))
 
-        return self.course_number_override
+        return six.text_type(six.moves.urllib.parse.quote(self.course_number))
 
     # pylint: disable=no-member
     def get_course_run(self):
         """
         Return the course_run of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_run_override is not None and self.course_run is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_run_override.replace("%%COURSE_RUN%%", self.course_run)))
+        if self.course_run_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_run_override))
 
-        return self.course_run_override
+        return six.text_type(six.moves.urllib.parse.quote(self.course_run))
 
     # pylint: disable=no-member
     def get_course_term(self):
         """
         Return the course_term of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_term_override is not None:
-            if self.course_term_override != 'perpetual':
-            # Substitute all %%-encoded keywords in the message body
-                return self.course_term_override
+        if self.course_term_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_term_override))
 
-        return self.course_term
+        return six.text_type(six.moves.urllib.parse.quote(self.course_term))
 
     def get_course_start_date(self):
         """
         Return the course_start_date of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_start_date_override is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_start_date_override.replace("%%COURSE_START_DATE%%", self.course_start_date)))
+        if self.course_start_date_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_start_date_override))
 
-        return self.course_start_date_override
+        return six.text_type(six.moves.urllib.parse.quote(self.course_start_date))
 
     def get_course_end_date(self):
         """
         Return the course_start_date of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_end_date_override is not None:
-            # Substitute all %%-encoded keywords in the message body
-            return six.text_type(six.moves.urllib.parse.quote(self.course_end_date_override.replace("%%COURSE_END_DATE%%", self.course_end_date)))
+        if self.course_end_date_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_end_date_override))
 
-        return self.course_end_date_override
+        return six.text_type(six.moves.urllib.parse.quote(self.course_end_date))
         
 
     def get_course_institution(self):
         """
         Return the course_institution of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_institution_override is not None:
-            if self.course_institution_override != "None": #self.course_institution_override.default:
-            # Substitute all %%-encoded keywords in the message body
-                return self.course_institution_override
+        if self.course_institution_override:
+            return six.text_type(six.moves.urllib.parse.quote(self.course_institution_override))
 
-        return self.course_institution
+        return six.text_type(six.moves.urllib.parse.quote(self.course_institution))
 
-    def get_course_instructor(self):
+    def get_course_instructors(self):
         """
         Return the course_instructor of the course where this XBlock is used.
-        Substitute %%-encoded keywords in the XBlock field with actual string.
+        Encode return value for Qualtrics query parameter usage.
         """
-        if self.course_instructor_override is not None:
-            if self.course_instructor_override != "None":
-                names = str(self.course_instructor_override)
-                names =names.replace(" ", "")
+        if self.course_instructors_override:
+            return six.text_type(six.moves.urllib.parse.quote(', '.join(self.course_instructors_override)))
 
-                return names
-
-        instructors = self.course_instructor
-        encoded_names = str(instructors.get('instructors'))
-        encoded_names = names.replace("'", "")
-        encoded_names = names.replace("[", "")
-        encoded_names = names.replace("]", "")
-        encoded_names = names.replace(" ", "")
-    
-        return encoded_names
+        return six.text_type(six.moves.urllib.parse.quote(', '.join(self.course_instructors)))
     
     def get_course_module_name(self):
         """
