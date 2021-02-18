@@ -84,6 +84,8 @@ class QualtricsSurveyViewMixin(
         show_meta_information_string = ("display_meta={param_display_meta}").format(
             param_display_meta=param_display_meta,
         )
+        param_survey_completed = 'The survey is done' if self.survey_completed else 'Please continue to finish the survey'
+
         context.update({
             'survey_id': self.survey_id,
             'your_university': self.your_university,
@@ -104,6 +106,7 @@ class QualtricsSurveyViewMixin(
             'show_simulation_exists_string': show_simulation_exists_string,
             'show_meta_information_string': show_meta_information_string,
             'message': self.message,
+            'survey_completed': param_survey_completed
         })
         
         return context

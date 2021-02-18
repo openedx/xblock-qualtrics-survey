@@ -7,6 +7,7 @@ from datetime import datetime
 
 from django.utils.translation import ugettext_lazy as _
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from xblock.core import XBlock
 from xblock.fields import Scope
 from xblock.fields import Boolean, List, String
 
@@ -185,6 +186,8 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
     """
     Handle data access for XBlock instances
     """
+
+    survey_completed = False
 
     editable_fields = [
         'display_name',
@@ -491,3 +494,13 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         """
         return self.show_meta_information
 
+
+    @XBlock.json_handler
+    def end_survey(self, data, suffix=''):  # pylint: disable=unused-argument
+        """
+        Called upon completion of the video
+        """
+        if data.get('completed'):
+            self.survey_completed = True
+
+        return {'survey_completed': self.survey_completed}

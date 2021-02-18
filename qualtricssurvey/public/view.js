@@ -16,4 +16,19 @@ function QualtricsSurveyView(runtime, element) {
 
     // To find elements inside your XBlock, try:
     // var myElement = $element.find('.myElement');
+
+    function on_finish(id) {
+        $.ajax({
+            type: "POST",
+            url: runtime.handlerUrl(element, 'end_survey'),
+            data: JSON.stringify({completed: true}),
+            success: function(result) {
+                completed_status.text(result.completed);
+            }
+        });
+    }
+
+    // var handlerUrl = runtime.handlerUrl(element, 'end_survey');
+    // console.log("Zach test");
+    // console.log(handlerUrl);
 }
