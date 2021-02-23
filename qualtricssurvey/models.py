@@ -14,6 +14,9 @@ from xblock.fields import Boolean, List, String
 from opaque_keys.edx.keys import UsageKey
 from xmodule.modulestore.django import modulestore
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 class CourseDetailsXBlockMixin(object):
     """
     Handles all course related information from the platform.
@@ -500,7 +503,15 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         """
         Called upon completion of the video
         """
-        if data.get('completed'):
-            self.survey_completed = True
+        # if data.get('completed'):
+        #     self.survey_completed = 'completed'
 
-        return {'survey_completed': self.survey_completed}
+        # return {'survey_status': self.survey_completed}
+
+        response = {
+            "survey_status": "success",
+            "message": "The Qualtric's survey is complete."
+        }
+
+        LOGGER.info("Qualtrics Survey Ended – Success")
+        return response
