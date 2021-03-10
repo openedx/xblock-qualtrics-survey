@@ -14,6 +14,8 @@ from xblock.fields import Boolean, List, String
 from opaque_keys.edx.keys import UsageKey
 from xmodule.modulestore.django import modulestore
 
+from .mixins.handlers import QualtricsHandlersMixin
+
 import logging
 LOGGER = logging.getLogger(__name__)
 
@@ -498,20 +500,21 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         return self.show_meta_information
 
 
-    @XBlock.json_handler
+    # @XBlock.json_handler
+    @QualtricsHandlersMixin.x_www_form_handler
     def end_survey(self, data, suffix=''):  # pylint: disable=unused-argument
         """
         Called upon completion of the video
         """
-        # if data.get('completed'):
-        #     self.survey_completed = 'completed'
-
-        # return {'survey_status': self.survey_completed}
-
         response = {
-            "survey_status": "success",
-            "message": "The Qualtric's survey is complete."
+            "Message": "Data processed from the Qualtrics Event Subscription API postback `surveyengine.completedResponse` event."
         }
+        status = data.get("Status")
+        LOGGER.info(u'Qualtrics Survey Ended – (Status: %s) – `surveyengine.completedResponse`\n', status)
 
-        LOGGER.info("Qualtrics Survey Ended – Success")
+        if status == "Complete":
+            # Todo: Need to trigger a completion grade back to the LMS.
+            LOGGER.info(u'Updating the LMS with grade from Qualtrics postback call.')
+
+        LOGGER.info(u'Data\n%s', data)
         return response
