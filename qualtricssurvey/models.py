@@ -4,21 +4,27 @@ Handle data access logic for the XBlock
 
 import six
 from datetime import datetime
-
+from xblock.scorable import ScorableXBlockMixin, Score
 from django.utils.translation import ugettext_lazy as _
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xblock.core import XBlock
 from xblock.fields import Scope
-from xblock.fields import Boolean, List, String
+from xblock.fields import Boolean, List, String, Float
 
 from opaque_keys.edx.keys import UsageKey
 from xmodule.modulestore.django import modulestore
 
 from .mixins.handlers import QualtricsHandlersMixin
 
+import requests
+from common.djangoapps.student.models import user_by_anonymous_id
+
+from collections import namedtuple
+
 import logging
 LOGGER = logging.getLogger(__name__)
 
+Score = namedtuple('Score', ['raw_earned', 'raw_possible'])
 class CourseDetailsXBlockMixin(object):
     """
     Handles all course related information from the platform.
@@ -187,7 +193,9 @@ class CourseDetailsXBlockMixin(object):
         institution, instructors, term = self._get_context_course_advanced_settings(src_block)
         return term
 
-class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
+    
+
+class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     """
     Handle data access for XBlock instances
     """
@@ -213,6 +221,7 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         'course_instructors_override',
         'show_simulation_exists',
         'show_meta_information',
+        'max_score_value'
     ]
     course_id_override = String(
         display_name=_('Course Identifier:'),
@@ -360,17 +369,36 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         scope=Scope.settings,
         help=_('This is the name of your university.'),
     )
+    max_score_value = Float(
+        display_name=_('Max Score'),
+        default=0,
+        scope=Scope.settings,
+        help=_('This is the maximum possible score'),
+    )
+    earned_score = 0.0
+    has_score = True
+    is_graded = "Ungraded"
+
+    @property
+    def descriptor(self):
+        """
+        Returns this XBlock object.
+        This is for backwards compatibility with the XModule API.
+        Some LMS code still assumes a descriptor attribute on the XBlock object.
+        See courseware.module_render.rebind_noauth_module_to_user.
+        """
+        return self
 
     # pylint: disable=no-member
-    # def get_anon_id(self):
+    def get_anon_id(self):
     #     """
     #     Return an anonymous user id
     #     """
-    #     try:
-    #         user_id = self.xmodule_runtime.anonymous_student_id
-    #     except AttributeError:
-    #         user_id = -1
-    #     return user_id
+         try:
+             user_id = self.xmodule_runtime.anonymous_student_id
+         except AttributeError:
+             user_id = -1
+         return user_id
 
     # pylint: disable=no-member
     def get_course_id(self):
@@ -499,22 +527,86 @@ class QualtricsSurveyModelMixin(CourseDetailsXBlockMixin):
         """
         return self.show_meta_information
 
+    def get_max_value(self):
+        return self.max_score_value
+        #return six.text_type(six.moves.urllib.parse.quote(self.max_score))
 
-    # @XBlock.json_handler
+    def get_is_graded(self):
+        return self.is_graded
+
+    def get_earned_score(self):
+        return self.earned_score
+
+    def set_earned_score(self):
+        self.earned_score = self.max_score_value
+
+    def publish_grade(self, id, score):
+        grade_dict = {
+            'value': score.raw_earned,
+            'max_value':score.raw_possible,
+            'user_id': id,
+        }
+        self.runtime.publish(self, "grade", grade_dict)
+        self.is_graded = "graded"
+    
     @QualtricsHandlersMixin.x_www_form_handler
     def end_survey(self, data, suffix=''):  # pylint: disable=unused-argument
         """
         Called upon completion of the video
         """
+        
+        survey_id = data.get("SurveyID")
+        response_id = data.get("ResponseID")
+        url = "https://clemson.qualtrics.com/API/v3/surveys/{}/responses/{}".format(survey_id, response_id)
+
+        payload={}
+        headers = {
+        'X-API-TOKEN': 'bJjfXqGYjXqp0triy3dnRmwD1vZ6lXFeAw41GTLW'
+          }
+
+        response_survey = requests.request("GET", url, headers=headers, data=payload)
+
+        LOGGER.info(response_survey.text)
+        data_response_survey = response_survey.json()
+        
         response = {
             "Message": "Data processed from the Qualtrics Event Subscription API postback `surveyengine.completedResponse` event."
         }
         status = data.get("Status")
         LOGGER.info(u'Qualtrics Survey Ended – (Status: %s) – `surveyengine.completedResponse`\n', status)
-
+        
         if status == "Complete":
-            # Todo: Need to trigger a completion grade back to the LMS.
-            LOGGER.info(u'Updating the LMS with grade from Qualtrics postback call.')
+            result = data_response_survey["result"]
+            values = result["values"]
+            real_user = user_by_anonymous_id(values["anonymous_user_id"])
+            self.system.rebind_noauth_module_to_user(self, real_user)
+
+            self.set_earned_score()
+            score = self.calculate_score()
+            self.publish_grade(real_user.id, score)
+            LOGGER.info('Updating the LMS with grade from Qualtrics postback call.')
 
         LOGGER.info(u'Data\n%s', data)
         return response
+
+    def has_submitted_answer(self):
+        return self.done
+
+    def set_score(self, score):
+        """
+        Sets the internal score for the problem. This is not derived directly
+        from the internal LCP in keeping with the ScorableXBlock spec.
+        """
+        self.score = score
+
+    def get_score(self):
+        """
+        Returns the score currently set on the block.
+        """
+        return self.score
+
+    def calculate_score(self):
+        """
+        Returns the score calculated from the current problem state.
+        """
+        return Score(raw_earned=self.earned_score, raw_possible=self.max_score_value)
