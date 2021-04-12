@@ -10,21 +10,61 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from xblock.core import XBlock
 from xblock.fields import Scope
 from xblock.fields import Boolean, List, String, Float
-
 from opaque_keys.edx.keys import UsageKey
 from xmodule.modulestore.django import modulestore
-
 from .mixins.handlers import QualtricsHandlersMixin
-
 import requests
-from common.djangoapps.student.models import user_by_anonymous_id
-
+import json
 from collections import namedtuple
+from common.djangoapps.student.models import user_by_anonymous_id
+from django.db import models
+from opaque_keys.edx.django.models import CourseKeyField
+from opaque_keys.edx.django.models import UsageKeyField
+from django.conf import settings
 
 import logging
 LOGGER = logging.getLogger(__name__)
 
 Score = namedtuple('Score', ['raw_earned', 'raw_possible'])
+
+class QualtricsSubscriptions(models.Model):
+    """
+    Defines a way to see if a given Qualtrics subscription_id is tied to a course_id, XBlock location id
+    """
+    class Meta:
+        # Since problem_builder isn't added to INSTALLED_APPS until it's imported,
+        # specify the app_label here.
+        app_label = 'qualtricssurvey'
+        unique_together = (
+            ('course_id', 'usage_key', 'subscription_id'),
+        )
+        managed = True
+
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    usage_key = UsageKeyField(max_length=255, db_index=True, help_text=_(u'The course block identifier.'))
+    subscription_id = models.CharField(max_length=50, db_index=True, help_text=_(u'The subscription id from Qualtrics.'))
+    
+    # new entry - we are checking because we want to only have one callback for the xblock location
+   
+# class SurveyStatus(models.Model):
+#     """
+#     Defines a way to see if a given Qualtrics subscription_id is tied to a course_id, XBlock location id
+#     """
+#     class Meta:
+#         # Since problem_builder isn't added to INSTALLED_APPS until it's imported,
+#         # specify the app_label here.
+#         app_label = 'qualtricssurvey'
+#         unique_together = (
+#             ('usage_key'),
+#         )
+#         managed = True
+
+#     #user_id = CourseKeyField(max_length=255, db_index=True)
+#     usage_key = UsageKeyField(max_length=255, db_index=True, help_text=_(u'The course block identifier.'))
+#     subscription_id = models.CharField(max_length=50, db_index=True, help_text=_(u'The subscription id from Qualtrics.'))
+    
+#     # new entry - we are checking because we want to only have one callback for the xblock location
+   
 class CourseDetailsXBlockMixin(object):
     """
     Handles all course related information from the platform.
@@ -193,13 +233,10 @@ class CourseDetailsXBlockMixin(object):
         institution, instructors, term = self._get_context_course_advanced_settings(src_block)
         return term
 
-    
-
 class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     """
     Handle data access for XBlock instances
     """
-
     survey_completed = False
 
     editable_fields = [
@@ -378,7 +415,7 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     earned_score = 0.0
     has_score = True
     is_graded = "Ungraded"
-
+          
     @property
     def descriptor(self):
         """
@@ -519,6 +556,9 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         """
         return self.show_simulation_exists
 
+    def get_survey_id(self) :
+        return self.survey_id
+
 
     # pylint: disable=no-member
     def should_show_meta_information(self):
@@ -529,7 +569,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
 
     def get_max_value(self):
         return self.max_score_value
-        #return six.text_type(six.moves.urllib.parse.quote(self.max_score))
 
     def get_is_graded(self):
         return self.is_graded
@@ -552,7 +591,7 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     @QualtricsHandlersMixin.x_www_form_handler
     def end_survey(self, data, suffix=''):  # pylint: disable=unused-argument
         """
-        Called upon completion of the video
+        Called upon completion of the survey
         """
         
         survey_id = data.get("SurveyID")
@@ -584,7 +623,8 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
             self.set_earned_score()
             score = self.calculate_score()
             self.publish_grade(real_user.id, score)
-            LOGGER.info('Updating the LMS with grade from Qualtrics postback call.')
+            LOGGER.info("Here")
+            #self.view()
 
         LOGGER.info(u'Data\n%s', data)
         return response
@@ -610,3 +650,11 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         Returns the score calculated from the current problem state.
         """
         return Score(raw_earned=self.earned_score, raw_possible=self.max_score_value)
+
+    @XBlock.json_handler
+    def view(self, data={}, suffix=''):
+        """
+        Current HTML view of the XBlock, for refresh by client
+        """
+        frag = self.student_view()
+        return {'html': frag.content}

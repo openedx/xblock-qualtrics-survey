@@ -9,7 +9,12 @@ split into its own library.
 from django.template.context import Context
 from xblock.core import XBlock
 from xblock.fragment import Fragment
-
+from qualtricssurvey.models import QualtricsSubscriptions
+from django.conf import settings
+import json
+import requests
+import logging
+LOGGER = logging.getLogger(__name__)
 
 class XBlockFragmentBuilderMixin:
     """
@@ -39,6 +44,7 @@ class XBlockFragmentBuilderMixin:
         """
         Build the fragment for the default student view
         """
+        LOGGER.info("Fragment")
         template = self.template
         context = self.provide_context(context)
         static_css = self.static_css or []
@@ -51,6 +57,49 @@ class XBlockFragmentBuilderMixin:
             js=static_js,
             js_init=js_init,
         )
+        try:
+            qualtrics_subscription = QualtricsSubscriptions.objects.get(course_id=getattr(self.runtime, 'course_id', None), usage_key=self.location)
+        
+        except:
+            #     #         Make a request call to the Qualtrics `Event Subscriptions: Create` endpoint https://clemson.qualtrics.com/API/v3/eventsubscriptions to create a new subscription callback to the Xblock endpoint.
+                        
+            #     #         Sample Request POST Body Payload (raw)
+            #     #         {
+            #     #             "topics": "surveyengine.completedResponse.SV_0GOuI59dZl8YdkW",
+            #     #             "publicationUrl": "http://localhost:18000/courses/course-v1:DEMO+AT-BR101+2020_Fall/xblock/block-v1:DEMO+AT-BR101+2020_Fall+type@qualtricssurvey+block@2deb2d20bb914423997b750c78fa0bf7/handler_noauth/end_survey"
+            #     #         }
+                        
+            #     #         Example POST Return from Qualtrics:
+            #     #         {
+            #     #            "result": {
+            #     #                "id": "SUB_9MLhUW4oN3kx5bM"
+            #     #            },
+            #     #            "meta": {
+            #     #   "httpStatus": "200 - OK",
+            #     #"requestId": "a7840953-9260-412c-a4eb-ad7d67942031"
+            #     # }
+            #     #}
+            #     # Todo: Use Postman request call to this endpoint.
+            #     #Store value in 'response' variable.
+            #survey_id = self.get_survey_id()
+            headers = {'X-API-TOKEN': u'{}'.format(settings.QUALTRICS_API_TOKEN), 'Content-Type': 'application/json'}
+            payload = json.dumps({
+                "topics": "surveyengine.completedResponse." + self.survey_id,
+                "publicationUrl": "http://google.com/courses/course-v1:edX+DemoX+Demo_Course/xblock/block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd/handler_noauth/end_survey"
+            })
+            LOGGER.info(payload)
+            response = requests.request("POST", settings.QUALTRICS_BASE_URL, headers=headers, data=payload)
+            subscription_id = response.json()['result']['id']
+
+            if subscription_id:
+                qualtrics_subscription = QualtricsSubscriptions(course_id=getattr(self.runtime, 'course_id', None), usage_key=self.location, subscription_id=subscription_id)
+                qualtrics_subscription.save()
+            else:
+                LOGGER.error(u"Could not locate a subscription id from Qualtrics API for course {} - XBlock location {}".format(
+                course_id, self.location
+                ))
+                raise
+
         return fragment
 
     def build_fragment(
@@ -64,6 +113,7 @@ class XBlockFragmentBuilderMixin:
         """
         Creates a fragment for display.
         """
+        
         context = context or {}
         css = css or []
         js = js or []
