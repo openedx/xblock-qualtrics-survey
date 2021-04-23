@@ -21,9 +21,9 @@ function QualtricsSurveyView(runtime, element) {
   // To find elements inside your XBlock, try:
   // var myElement = $element.find('.myElement');
   
-  var earned_score_html = $('.qualtricssurvey_block .qualtrics-message .grade .earned_score')
-  var max_score_html = $('.qualtricssurvey_block .qualtrics-message .grade .max_score')
-  var status_html = $('.qualtricssurvey_block .qualtrics-message .grade .status')
+  var earned_score_html = $('.qualtricssurvey_block .qualtrics_message .grade .earned_score')
+  var max_score_html = $('.qualtricssurvey_block .qualtrics_message .grade .max_score')
+  var status_html = $('.qualtricssurvey_block .qualtrics_message .grade .status')
   
   var handlerUrl = runtime.handlerUrl(element, 'get_survey_status');
 
@@ -35,9 +35,9 @@ function QualtricsSurveyView(runtime, element) {
           data: JSON.stringify({}),
           success: function (data) {
             if (data.survey_status == "Complete") {
-              $element.find(earned_score_html).text(data.earned_score)
-              $element.find(max_score_html).text(data.max_score)
-              $element.find(status_html).text("Graded")
+              $element.find(earned_score_html).text(data.earned_score.toFixed(1))
+              $element.find(max_score_html).text(data.max_score.toFixed(1))
+              $element.find(status_html).addClass("fa fa-check-circle graded")
             }
             else {
               updateView()

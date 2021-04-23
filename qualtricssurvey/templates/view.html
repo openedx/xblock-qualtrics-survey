@@ -1,19 +1,9 @@
 <div class="qualtricssurvey_block">
-  <!--
-    <p>{{message}}</p>
-    <p>
-        <a
-          class="button primary-button qualtrics-button"
-          href="https://{{your_university}}.qualtrics.com/jfe/form/{{survey_id}}?{{user_id_string}}"
-          target="_blank"
-        >
-          {{link_text}}
-        </a>
-    </p>
-  -->
-    <div class="qualtrics-message">
-        <h1>Survey Response </h1>   
-        <div class="grade"><span class="earned_score">{{earned_score}}</span>/<span class="max_score">{{max_score}}</span> points (<span class="status">{{is_graded}}</span>)</div>
+    <div class="qualtrics_message"> 
+        <div class="grade">
+          <span class="earned_score">{{earned_score}}</span>/<span class="max_score">{{max_score}}</span> points 
+          <span class="status"></span>
+        </div>
         <p>{{message}}</p>
     </div>
     <iframe src="https://{{your_university}}.ca1.qualtrics.com/jfe/form/{{survey_id}}?{{course_id_string}}&amp;{{course_name_string}}&amp;{{course_org_string}}&amp;{{course_number_string}}&amp;{{course_run_string}}&amp;{{course_term_string}}&amp;{{course_start_date_string}}&amp;{{course_end_date_string}}&amp;{{course_institution_string}}&amp;{{course_instructor_string}}&amp;{{course_module_name_string}}&amp;{{show_simulation_exists_string}}&amp;{{show_meta_information_string}}&amp;{{anon_user_id_string}}" />

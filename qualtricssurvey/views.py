@@ -85,7 +85,7 @@ class QualtricsSurveyViewMixin(
             param_display_meta=param_display_meta,
         )
         param_survey_completed = 'The survey is done' if self.survey_completed else 'Please continue to finish the survey'
-        #LOGGER.info(self.surveystatus)
+
         context.update({
             'survey_id': self.survey_id,
             'your_university': self.your_university,
@@ -108,7 +108,7 @@ class QualtricsSurveyViewMixin(
             'message': self.message,
             'survey_completed': param_survey_completed,
             'anon_user_id_string': anon_user_id_string,
-            'earned_score': self.score.raw_earned,
+            'earned_score': self.score.raw_earned if self.score is not None else 0,
             'max_score': self.max_score,
             'is_graded': self.get_is_graded,
         })

@@ -16,16 +16,19 @@ from .mixins.handlers import QualtricsHandlersMixin
 import requests
 import json
 from collections import namedtuple
-from common.djangoapps.student.models import user_by_anonymous_id
+from .platform_dependencies import user_by_anonymous_id
 from django.db import models
 from opaque_keys.edx.django.models import CourseKeyField
 from opaque_keys.edx.django.models import UsageKeyField
 from django.conf import settings
+# from requests.packages.urllib3.exceptions import HTTPError
 
 from xmodule.fields import ScoreField
 
 import logging
 LOGGER = logging.getLogger(__name__)
+
+from .qualtrics_api import QualtricsApi
 
 Score = namedtuple('Score', ['raw_earned', 'raw_possible'])
 
@@ -609,18 +612,15 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     @XBlock.json_handler
     def get_survey_status(self, data, suffix=''):
         try:
-            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status
-                
+            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
         except:
             survey_status = "Incomplete"
 
         # Prevents dividing by zero when computing weighted score for unweighted survey
-        if (self.score.raw_possible != 0) :
+        if (self.score is not None and self.score.raw_possible != 0):
             earned_score = (self.score.raw_earned/self.score.raw_possible) * self.weight
-        
         else: 
             earned_score = 0
-
 
         return {'survey_status': survey_status, 'max_score': self.weight, 'earned_score': earned_score}
         
@@ -633,39 +633,44 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         
         survey_id = data.get("SurveyID")
         response_id = data.get("ResponseID")
-        url = "https://clemson.qualtrics.com/API/v3/surveys/{}/responses/{}".format(survey_id, response_id)
+        status = data.get("Status")
 
-        payload={}
-        headers = {
-        'X-API-TOKEN': 'bJjfXqGYjXqp0triy3dnRmwD1vZ6lXFeAw41GTLW'
-        }
+        response_survey = QualtricsApi().get_survey_response(survey_id, response_id)
 
-        response_survey = requests.request("GET", url, headers=headers, data=payload)
+        if response_survey.ok and status == "Complete":
+            data_response_survey = response_survey.json()
+            result = data_response_survey["result"]
+            values = result["values"]
 
-        data_response_survey = response_survey.json()
-        
+            if not user_by_anonymous_id:
+                import_error_anonymous_id = "Could not import `user_by_anonymous_id` from edx-platform student app."
+                raise ImportError(import_error_anonymous_id)
+                response = {
+                    import_error_anonymous_id
+                }
+            else:
+                real_user = user_by_anonymous_id(values["anonymous_user_id"])
+                if (real_user is None):
+                    real_user_error = u"Cannot find `real_user` from the `anonymous_user_id`."
+                    LOGGER.error(real_user_error)
+                    raise ValueError(real_user_error)
+
+                # rebinds the user to the xblock so that a grade can be published for the correct user
+                self.system.rebind_noauth_module_to_user(self, real_user)
+
+                self.set_earned_score()
+                score = self.calculate_score()
+                self.set_score(score)
+                self.publish_grade()
+            
+                # Updates database survey status to complete
+                survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=real_user.id)
+                survey_status.status = 'Complete'
+                survey_status.save()
+
         response = {
             "Message": "Data processed from the Qualtrics Event Subscription API postback `surveyengine.completedResponse` event."
         }
-        status = data.get("Status")
-
-        if status == "Complete":
-            result = data_response_survey["result"]
-            values = result["values"]
-            real_user = user_by_anonymous_id(values["anonymous_user_id"])
-            # rebinds the user to the xblock so that a grade can be published for the correct user
-            self.system.rebind_noauth_module_to_user(self, real_user)
-
-            self.set_earned_score()
-            score = self.calculate_score()
-            self.set_score(score)
-            self.publish_grade()
-        
-            # Updates database survey status to complete
-            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=real_user.id)
-            survey_status.status='Complete'
-            survey_status.save()
-
         return response
 
     def has_submitted_answer(self):

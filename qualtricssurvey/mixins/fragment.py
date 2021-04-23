@@ -9,16 +9,16 @@ split into its own library.
 from django.template.context import Context
 from xblock.core import XBlock
 from xblock.fragment import Fragment
-from qualtricssurvey.models import QualtricsSubscriptions
 from qualtricssurvey.models import SurveyStatus
 from django.conf import settings
-from common.djangoapps.student.models import user_by_anonymous_id
 import json
 import requests
 from django.core import serializers
 import logging
 LOGGER = logging.getLogger(__name__)
 
+from ..models import QualtricsSubscriptions
+from ..qualtrics_api import QualtricsApi
 class XBlockFragmentBuilderMixin:
     """
     Create a default XBlock fragment builder
@@ -41,7 +41,7 @@ class XBlockFragmentBuilderMixin:
         context = context or {}
         context = dict(context)
         return context
-
+            
     @XBlock.supports('multi_device')
     def student_view(self, context=None):
         """
@@ -60,33 +60,24 @@ class XBlockFragmentBuilderMixin:
             js_init=js_init,
         )
     
-        # Checking if the survey has subscription for event callback and creates it if not
+        # Create Qualtrics event subscription callback to specific XBlock event handler on load of the student view.
+        # Checking if the survey has subscription for event callback and stores and entry in the database.
+        course_id = getattr(self.runtime, 'course_id', None)
         try:
-            qualtrics_subscription = QualtricsSubscriptions.objects.get(course_id=getattr(self.runtime, 'course_id', None), usage_key=self.location)
-    
-        except:
-            headers = {'X-API-TOKEN': u'{}'.format(settings.QUALTRICS_API_TOKEN), 'Content-Type': 'application/json'}
-            payload = json.dumps({
-                "topics": "surveyengine.completedResponse." + self.survey_id,
-                "publicationUrl": "http://google.com/courses/course-v1:edX+DemoX+Demo_Course/xblock/block-v1:edX+DemoX+Demo_Course+type@qualtricssurvey+block@00116206cd3a4059b4749fe26b5417bd/handler_noauth/end_survey"
-            })
+            qualtrics_subscription = QualtricsSubscriptions.objects.get(course_id=course_id, usage_key=self.location)
+        except QualtricsSubscriptions.DoesNotExist:
+            subscription_id = QualtricsApi().create_event_subscription(self)
 
-            response = requests.request("POST", settings.QUALTRICS_BASE_URL, headers=headers, data=payload)
-            subscription_id = response.json()['result']['id']
-
-            if subscription_id:
-                qualtrics_subscription = QualtricsSubscriptions(course_id=getattr(self.runtime, 'course_id', None), usage_key=self.location, subscription_id=subscription_id)
-                qualtrics_subscription.save()
-            
+            if subscription_id is not None:
+                qualtrics_subscription = QualtricsSubscriptions(course_id=course_id, usage_key=self.location, subscription_id=subscription_id)
+                qualtrics_subscription.save()                
             else:
-                LOGGER.error(u"Could not locate a subscription id from Qualtrics API for course {} - XBlock location {}".format(
-                course_id, self.location))
-                raise
-        
+                LOGGER.error(u"Could not locate a subscription id from Qualtrics API for course {} - XBlock location {}".format(course_id, self.location))
+                        
         try:
-            survey_status = SurveyStatus.objects.get( usage_key = self.location, user_id=self.xmodule_runtime.user_id)
-        except:
-            survey_status = SurveyStatus( usage_key = self.location, user_id=user.id, status = "incomplete")
+            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id)
+        except SurveyStatus.DoesNotExist:
+            survey_status = SurveyStatus(usage_key=self.location, user_id=self.xmodule_runtime.user_id, status="incomplete")
             survey_status.save()
         
         return fragment
