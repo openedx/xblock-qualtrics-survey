@@ -613,7 +613,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
                 
         except:
             survey_status = "Incomplete"
-            grade = 0
 
         # Prevents dividing by zero when computing weighted score for unweighted survey
         if (self.score.raw_possible != 0) :
@@ -654,6 +653,7 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
             result = data_response_survey["result"]
             values = result["values"]
             real_user = user_by_anonymous_id(values["anonymous_user_id"])
+            # rebinds the user to the xblock so that a grade can be published for the correct user
             self.system.rebind_noauth_module_to_user(self, real_user)
 
             self.set_earned_score()
