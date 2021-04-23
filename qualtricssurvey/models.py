@@ -34,7 +34,7 @@ class QualtricsSubscriptions(models.Model):
     Defines a way to see if a given Qualtrics subscription_id is tied to a course_id, XBlock location id
     """
     class Meta:
-        # Since problem_builder isn't added to INSTALLED_APPS until it's imported,
+        # Since QualtricsSurvey isn't added to INSTALLED_APPS until it's imported,
         # specify the app_label here.
         app_label = 'qualtricssurvey'
         unique_together = (
@@ -53,7 +53,7 @@ class SurveyStatus(models.Model):
     Defines a way to see if a given Qualtrics survey has been completed and graded
     """
     class Meta:
-        # Since problem_builder isn't added to INSTALLED_APPS until it's imported,
+        # Since QualtricsSurvey isn't added to INSTALLED_APPS until it's imported,
         # specify the app_label here.
         app_label = 'qualtricssurvey'
         unique_together = (
