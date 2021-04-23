@@ -5,7 +5,9 @@ from xblockutils.resources import ResourceLoader
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from .mixins.fragment import XBlockFragmentBuilderMixin
-
+from web_fragments.fragment import Fragment
+import logging
+LOGGER = logging.getLogger(__name__)
 #xmodule.course_module import CourseFields
 class QualtricsSurveyViewMixin(
         XBlockFragmentBuilderMixin,
@@ -22,6 +24,7 @@ class QualtricsSurveyViewMixin(
         """
         Build a context dictionary to render the student view
         """
+
         context = context or {}
         context = dict(context)
     
@@ -82,7 +85,7 @@ class QualtricsSurveyViewMixin(
             param_display_meta=param_display_meta,
         )
         param_survey_completed = 'The survey is done' if self.survey_completed else 'Please continue to finish the survey'
-
+        #LOGGER.info(self.surveystatus)
         context.update({
             'survey_id': self.survey_id,
             'your_university': self.your_university,
@@ -105,9 +108,9 @@ class QualtricsSurveyViewMixin(
             'message': self.message,
             'survey_completed': param_survey_completed,
             'anon_user_id_string': anon_user_id_string,
-            'earned_score': self.earned_score,
-            'max_score': self.get_max_value,
-            'is_graded': self.get_is_graded
+            'earned_score': self.score.raw_earned,
+            'max_score': self.max_score,
+            'is_graded': self.get_is_graded,
         })
         
         return context
