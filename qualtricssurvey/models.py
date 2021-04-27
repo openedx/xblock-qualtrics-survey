@@ -30,8 +30,6 @@ LOGGER = logging.getLogger(__name__)
 
 from .qualtrics_api import QualtricsApi
 
-Score = namedtuple('Score', ['raw_earned', 'raw_possible'])
-
 class QualtricsSubscriptions(models.Model):
     """
     Defines a way to see if a given Qualtrics subscription_id is tied to a course_id, XBlock location id
@@ -424,7 +422,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         scope=Scope.user_state, 
         enforce_type=False)
     
-    earned_score = 0
     has_score = True
           
     @property
@@ -596,12 +593,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         is_graded = "Ungraded"   
         return is_graded
 
-    def get_earned_score(self):
-        return self.score.raw_earned
-
-    def set_earned_score(self):
-        self.earned_score = self.weight
-
     def publish_grade(self):
         grade_dict = {
             'value': self.score.raw_earned,
@@ -658,7 +649,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
                 # rebinds the user to the xblock so that a grade can be published for the correct user
                 self.system.rebind_noauth_module_to_user(self, real_user)
 
-                self.set_earned_score()
                 score = self.calculate_score()
                 self.set_score(score)
                 self.publish_grade()
@@ -696,4 +686,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         """
         Returns the score calculated from the current problem state.
         """
-        return Score(raw_earned=self.earned_score, raw_possible=self.weight)
+        # Awards full points for completing a survey
+        earned_score = 1
+        return Score(raw_earned=earned_score, raw_possible=1)
