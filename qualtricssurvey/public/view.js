@@ -24,8 +24,20 @@ function QualtricsSurveyView(runtime, element) {
   var earned_score_html = $('.qualtricssurvey_block .qualtrics_message .grade .earned_score')
   var max_score_html = $('.qualtricssurvey_block .qualtrics_message .grade .max_score')
   var status_html = $('.qualtricssurvey_block .qualtrics_message .grade .status')
+  var graded_html = $('.qualtricssurvey_block .qualtrics_message .grade .is_graded')
   
   var handlerUrl = runtime.handlerUrl(element, 'get_survey_status');
+
+  var graded = $element.context.getAttribute('data-graded')
+
+  if (graded === 'True') {
+    graded = "(Graded) ";
+  } 
+  else {
+    graded = "(Ungraded) ";
+  }
+
+  $element.find(graded_html).text(graded)
 
     function updateView(event) {
       setTimeout(function() { 

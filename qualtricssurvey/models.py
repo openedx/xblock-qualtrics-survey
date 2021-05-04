@@ -21,6 +21,7 @@ from django.db import models
 from opaque_keys.edx.django.models import CourseKeyField
 from opaque_keys.edx.django.models import UsageKeyField
 from django.conf import settings
+from lms.djangoapps.grades import tasks
 # from requests.packages.urllib3.exceptions import HTTPError
 
 from xmodule.fields import ScoreField
@@ -593,13 +594,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         is_graded = "Ungraded"   
         return is_graded
 
-    def publish_grade(self):
-        grade_dict = {
-            'value': self.score.raw_earned,
-            'max_value': self.score.raw_possible,
-        }
-        self.runtime.publish(self, "grade", grade_dict)
-
     @XBlock.json_handler
     def get_survey_status(self, data, suffix=''):
         try:
@@ -663,23 +657,43 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         }
         return response
 
+    def publish_grade(self):
+        grade_dict = {
+            'value': self.score.raw_earned,
+            'max_value': self.score.raw_possible,
+        }
+        LOGGER.info("Sanders", self.score)
+        self.runtime.publish(self, "grade", grade_dict)
+
     def has_submitted_answer(self):
         """
         Currently unused.
         """
-        return self.done
+        try:
+            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
+        except:
+            survey_status = "Incomplete"
+
+        LOGGER.info("BRad Sand", survey_status)
+        if survey_status == "Complete":
+            return True
+        
+        return False
 
     def set_score(self, score):
         """
         Sets the internal score for the problem. This is not derived directly
         from the internal LCP in keeping with the ScorableXBlock spec.
         """
+
+        LOGGER.info("SANDER", self.score)
         self.score = score
 
     def get_score(self):
         """
         Returns the score currently set on the block.
         """
+        LOGGER.info("SANDER", self.score)
         return self.score
 
     def calculate_score(self):
@@ -687,5 +701,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         Returns the score calculated from the current problem state.
         """
         # Awards full points for completing a survey
+        LOGGER.info("SANDER", self.score)
         earned_score = 1
         return Score(raw_earned=earned_score, raw_possible=1)

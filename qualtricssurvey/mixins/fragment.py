@@ -59,7 +59,7 @@ class XBlockFragmentBuilderMixin:
             js=static_js,
             js_init=js_init,
         )
-    
+        LOGGER.info(self.score)
         # Create Qualtrics event subscription callback to specific XBlock event handler on load of the student view.
         # Checking if the survey has subscription for event callback and stores and entry in the database.
         course_id = getattr(self.runtime, 'course_id', None)
@@ -76,10 +76,14 @@ class XBlockFragmentBuilderMixin:
                         
         try:
             survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id)
+            # Marks survey as incomplete for case that the learner's state was deleted
+            if (self.score is None):
+                survey_status.status = "Incomplete"
+                survey_status.save()
         except SurveyStatus.DoesNotExist:
             survey_status = SurveyStatus(usage_key=self.location, user_id=self.xmodule_runtime.user_id, status="incomplete")
             survey_status.save()
-        
+
         return fragment
 
     def build_fragment(
