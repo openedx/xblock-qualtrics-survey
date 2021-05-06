@@ -110,7 +110,6 @@ class QualtricsSurveyViewMixin(
             'anon_user_id_string': anon_user_id_string,
             'earned_score': self.score.raw_earned*self.weight if self.score is not None else 0,
             'max_score': self.max_score,
-            'is_graded': self.get_is_graded,
         })
         
         return context

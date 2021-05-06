@@ -28,15 +28,7 @@ function QualtricsSurveyView(runtime, element) {
   
   var handlerUrl = runtime.handlerUrl(element, 'get_survey_status');
 
-  var graded = $element.context.getAttribute('data-graded')
-
-  if (graded === 'True') {
-    graded = "(Graded) ";
-  } 
-  else {
-    graded = "(Ungraded) ";
-  }
-
+  var graded = $element.context.getAttribute('data-graded') === 'True' ? '(Graded) ' : '(Ungraded) ';
   $element.find(graded_html).text(graded)
 
     function updateView(event) {
@@ -46,7 +38,7 @@ function QualtricsSurveyView(runtime, element) {
           url: handlerUrl,
           data: JSON.stringify({}),
           success: function (data) {
-            if (data.survey_status == "Complete") {
+            if (data.is_answered == true) {
               $element.find(earned_score_html).text(data.earned_score.toFixed(1))
               $element.find(max_score_html).text(data.max_score.toFixed(1))
               $element.find(status_html).addClass("fa fa-check-circle graded")

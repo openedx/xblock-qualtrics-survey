@@ -50,23 +50,23 @@ class QualtricsSubscriptions(models.Model):
     
     # new entry - we are checking because we want to only have one callback for the xblock location
    
-class SurveyStatus(models.Model):
-    """
-    Defines a way to see if a given Qualtrics survey has been completed and graded
-    """
-    class Meta:
-        # Since QualtricsSurvey isn't added to INSTALLED_APPS until it's imported,
-        # specify the app_label here.
-        app_label = 'qualtricssurvey'
-        unique_together = (
-            ('usage_key', 'user_id'),
-        )
-        managed = True
+# class SurveyStatus(models.Model):
+#     """
+#     Defines a way to see if a given Qualtrics survey has been completed and graded
+#     """
+#     class Meta:
+#         # Since QualtricsSurvey isn't added to INSTALLED_APPS until it's imported,
+#         # specify the app_label here.
+#         app_label = 'qualtricssurvey'
+#         unique_together = (
+#             ('usage_key', 'user_id'),
+#         )
+#         managed = True
 
-    user_id = models.IntegerField(db_index=True)
-    usage_key = UsageKeyField(max_length=255, db_index=True, primary_key = True, help_text=_(u'The course block identifier.'))
-    status = models.CharField(max_length = 10, db_index=True, help_text=_(u'The current completion status of the survey '))
-    # new entry - we are checking because we want to only have one callback for the xblock location
+#     user_id = models.IntegerField(db_index=True)
+#     usage_key = UsageKeyField(max_length=255, db_index=True, primary_key = True, help_text=_(u'The course block identifier.'))
+#     status = models.CharField(max_length = 10, db_index=True, help_text=_(u'The current completion status of the survey '))
+#     # new entry - we are checking because we want to only have one callback for the xblock location
 
 class CourseDetailsXBlockMixin(object):
     """
@@ -421,7 +421,13 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
     score = ScoreField(
         help=_("Dictionary with the current student score"), 
         scope=Scope.user_state, 
-        enforce_type=False)
+        enforce_type=False
+    )
+    is_answered = Boolean(
+        default=False,
+        scope=Scope.user_state,
+        help='Will be set to "True" if successfully answered'
+    )
     
     has_score = True
           
@@ -582,24 +588,12 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         """
         return self.weight
 
-    def get_is_graded(self):
-        try:
-            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status
-            if (survey_status == "Complete"):
-                is_graded = "Graded"
-                return is_graded
-        except:
-            pass
-
-        is_graded = "Ungraded"   
-        return is_graded
-
     @XBlock.json_handler
     def get_survey_status(self, data, suffix=''):
-        try:
-            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
-        except:
-            survey_status = "Incomplete"
+        #try:
+        #    survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
+        #except:
+        #    survey_status = "Incomplete"
 
         # Prevents dividing by zero when computing weighted score for unweighted survey
         if (self.score is not None and self.score.raw_possible != 0):
@@ -607,7 +601,7 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         else: 
             earned_score = 0
 
-        return {'survey_status': survey_status, 'max_score': self.weight, 'earned_score': earned_score}
+        return {'is_answered': self.is_answered, 'max_score': self.weight, 'earned_score': earned_score}
         
 
     @QualtricsHandlersMixin.x_www_form_handler
@@ -648,9 +642,10 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
                 self.publish_grade()
             
                 # Updates database survey status to complete
-                survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=real_user.id)
-                survey_status.status = 'Complete'
-                survey_status.save()
+                self.is_answered = True
+                #survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=real_user.id)
+                #survey_status.status = 'Complete'
+                #survey_status.save()
 
         response = {
             "Message": "Data processed from the Qualtrics Event Subscription API postback `surveyengine.completedResponse` event."
@@ -662,38 +657,22 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
             'value': self.score.raw_earned,
             'max_value': self.score.raw_possible,
         }
-        LOGGER.info("Sanders", self.score)
         self.runtime.publish(self, "grade", grade_dict)
 
     def has_submitted_answer(self):
-        """
-        Currently unused.
-        """
-        try:
-            survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
-        except:
-            survey_status = "Incomplete"
-
-        LOGGER.info("BRad Sand", survey_status)
-        if survey_status == "Complete":
-            return True
-        
-        return False
+        return self.is_answered
 
     def set_score(self, score):
         """
         Sets the internal score for the problem. This is not derived directly
         from the internal LCP in keeping with the ScorableXBlock spec.
         """
-
-        LOGGER.info("SANDER", self.score)
         self.score = score
 
     def get_score(self):
         """
         Returns the score currently set on the block.
         """
-        LOGGER.info("SANDER", self.score)
         return self.score
 
     def calculate_score(self):
@@ -701,6 +680,5 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         Returns the score calculated from the current problem state.
         """
         # Awards full points for completing a survey
-        LOGGER.info("SANDER", self.score)
         earned_score = 1
         return Score(raw_earned=earned_score, raw_possible=1)
