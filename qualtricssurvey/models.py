@@ -609,12 +609,13 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         """
         Called upon completion of the survey
         """
-        
+        bearer_token = QualtricsApi().get_oauth_token()
+        LOGGER.info("Sand", bearer_token)
         survey_id = data.get("SurveyID")
         response_id = data.get("ResponseID")
         status = data.get("Status")
 
-        response_survey = QualtricsApi().get_survey_response(survey_id, response_id)
+        response_survey = QualtricsApi().get_survey_response(survey_id, response_id, bearer_token)
 
         if response_survey.ok and status == "Complete":
             data_response_survey = response_survey.json()

@@ -3,6 +3,7 @@ from lazy import lazy
 from requests.packages.urllib3.exceptions import HTTPError
 import requests
 import json
+from django.core.cache import caches
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -13,12 +14,24 @@ class QualtricsApi():
     """
 
     def __init__(self):
-        pass
+        self.api_ver = settings.QUALTRICS_API_VERSION
+        #if self.api_ver != 'v1':
+            # initialize backend refresh token cache with initial values from settings
+            # settings will likely store an out of date refresh token after the first
+            # refresh, so make sure cache stores up to date token.  Make sure to update
+            # the refresh token if a new one obtained outside of this application.
+            #self.token_cache = caches[settings.QUALTRICS_API_TOKEN_CACHE]
+            #if not self.token_cache.get(BADGR_API_REFRESH_TOKEN_CACHE_KEY):
+            #try:
+            #    self.token_cache.set(BADGR_API_REFRESH_TOKEN_CACHE_KEY, settings.BADGR_API_REFRESH_TOKEN, timeout=None)
+            #except AttributeError:
+            #    raise ImproperlyConfigured("BADGR_API_REFRESH_TOKEN not set. See https://badgr.org/app-developers/api-guide/#quickstart")
 
     def _log_if_raised(self, response, data):
         """
         Log server response if there was an error.
         """
+        
         try:
             response.raise_for_status()
         except HTTPError:
@@ -88,7 +101,7 @@ class QualtricsApi():
 
         return None
 
-    def get_survey_response(self, survey_id, response_id):
+    def get_survey_response(self, survey_id, response_id, bearer_token):
         """
         Retrieve survey response for learner.
         """
@@ -96,11 +109,28 @@ class QualtricsApi():
 
         payload = {}
         headers = {
-            'X-API-TOKEN': settings.QUALTRICS_API_TOKEN
+            "authorization": "bearer " + bearer_token,
         }
         response_survey = requests.request("GET", url, headers=headers, data=payload)
         self._log_if_raised(response_survey, payload)
 
         return response_survey
+
+    def get_oauth_token(self): 
+        url = "https://clemson.qualtrics.com/oauth2/token"
+
+        # TODO: Find way to store id and secret as environment variables for each client
+        payload= {'client_id': '4034ac7845f121397cfffdbcd5f45e59', 'client_secret': 'p3Tpxy4FnppHaVowFJfAUTlgiFkx3JzFivudjg1dW8YafVFqEB0jz7EIcSE4EabK','grant_type': 'client_credentials','scope': 'write:subscriptions read:survey_responses'}
+        files=[
+
+        ]
+        headers = {
+        'Content-Type': 'application/json'
+        }
+
+        response = requests.request("POST", url, headers=headers, data=payload, files=files)
+
+        print(response.text)
+        return response.text
 
     
