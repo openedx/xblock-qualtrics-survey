@@ -47,26 +47,6 @@ class QualtricsSubscriptions(models.Model):
     course_id = CourseKeyField(max_length=255, db_index=True)
     usage_key = UsageKeyField(max_length=255, db_index=True, help_text=_(u'The course block identifier.'))
     subscription_id = models.CharField(max_length=50, db_index=True, help_text=_(u'The subscription id from Qualtrics.'))
-    
-    # new entry - we are checking because we want to only have one callback for the xblock location
-   
-# class SurveyStatus(models.Model):
-#     """
-#     Defines a way to see if a given Qualtrics survey has been completed and graded
-#     """
-#     class Meta:
-#         # Since QualtricsSurvey isn't added to INSTALLED_APPS until it's imported,
-#         # specify the app_label here.
-#         app_label = 'qualtricssurvey'
-#         unique_together = (
-#             ('usage_key', 'user_id'),
-#         )
-#         managed = True
-
-#     user_id = models.IntegerField(db_index=True)
-#     usage_key = UsageKeyField(max_length=255, db_index=True, primary_key = True, help_text=_(u'The course block identifier.'))
-#     status = models.CharField(max_length = 10, db_index=True, help_text=_(u'The current completion status of the survey '))
-#     # new entry - we are checking because we want to only have one callback for the xblock location
 
 class CourseDetailsXBlockMixin(object):
     """
@@ -590,11 +570,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
 
     @XBlock.json_handler
     def get_survey_status(self, data, suffix=''):
-        #try:
-        #    survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=self.xmodule_runtime.user_id).status         
-        #except:
-        #    survey_status = "Incomplete"
-
         # Prevents dividing by zero when computing weighted score for unweighted survey
         if (self.score is not None and self.score.raw_possible != 0):
             earned_score = (self.score.raw_earned/self.score.raw_possible) * self.weight
@@ -609,13 +584,12 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
         """
         Called upon completion of the survey
         """
-        bearer_token = QualtricsApi().get_oauth_token()
-        LOGGER.info("Sand", bearer_token)
+    
         survey_id = data.get("SurveyID")
         response_id = data.get("ResponseID")
         status = data.get("Status")
 
-        response_survey = QualtricsApi().get_survey_response(survey_id, response_id, bearer_token)
+        response_survey = QualtricsApi().get_survey_response(survey_id, response_id)
 
         if response_survey.ok and status == "Complete":
             data_response_survey = response_survey.json()
@@ -644,9 +618,6 @@ class QualtricsSurveyModelMixin(ScorableXBlockMixin, CourseDetailsXBlockMixin):
             
                 # Updates database survey status to complete
                 self.is_answered = True
-                #survey_status = SurveyStatus.objects.get(usage_key=self.location, user_id=real_user.id)
-                #survey_status.status = 'Complete'
-                #survey_status.save()
 
         response = {
             "Message": "Data processed from the Qualtrics Event Subscription API postback `surveyengine.completedResponse` event."

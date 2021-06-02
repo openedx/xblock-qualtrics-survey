@@ -15,18 +15,10 @@ class QualtricsApi():
 
     def __init__(self):
         self.api_ver = settings.QUALTRICS_API_VERSION
-        #if self.api_ver != 'v1':
-            # initialize backend refresh token cache with initial values from settings
-            # settings will likely store an out of date refresh token after the first
-            # refresh, so make sure cache stores up to date token.  Make sure to update
-            # the refresh token if a new one obtained outside of this application.
-            #self.token_cache = caches[settings.QUALTRICS_API_TOKEN_CACHE]
-            #if not self.token_cache.get(BADGR_API_REFRESH_TOKEN_CACHE_KEY):
-            #try:
-            #    self.token_cache.set(BADGR_API_REFRESH_TOKEN_CACHE_KEY, settings.BADGR_API_REFRESH_TOKEN, timeout=None)
-            #except AttributeError:
-            #    raise ImproperlyConfigured("BADGR_API_REFRESH_TOKEN not set. See https://badgr.org/app-developers/api-guide/#quickstart")
-
+        if self.api_ver != 'v1':
+            # initialize backend token cache
+            self.token_cache = caches[settings.QUALTRICS_API_TOKEN_CACHE]
+           
     def _log_if_raised(self, response, data):
         """
         Log server response if there was an error.
@@ -74,25 +66,42 @@ class QualtricsApi():
         scheme = u"https" if settings.HTTPS == "on" else u"http"
         return u'{}://{}'.format(scheme, settings.LMS_BASE)
 
+    def get_headers(self):
+        # Headers to send along with the request-- used for authentication
+
+        # v1 is deprecated and will result in 404 error
+        if settings.QUALTRICS_API_VERSION == 'v1':
+            headers = {
+                'X-API-TOKEN': settings.QUALTRICS_API_TOKEN, 
+                'Content-Type': 'application/json'
+            }
+            return headers
+        
+        else:
+            headers = {
+                "authorization": "bearer " + self.get_oauth_token(),
+                'Content-Type': 'application/json'
+            }
+            return headers
+
     def create_event_subscription(self, xblock):
         """
         Create event subscription callback on survey complete to XBlock event handler endpoint.
         """
+        
         course_id = getattr(xblock.runtime, 'course_id', None)
         
-        headers = {
-            'X-API-TOKEN': settings.QUALTRICS_API_TOKEN, 
-            'Content-Type': 'application/json'
-        }        
+        headers = self.get_headers()
+      
         payload = json.dumps({
             "topics": "surveyengine.completedResponse." + xblock.survey_id,
             "publicationUrl": "{}/courses/{}/xblock/{}/handler_noauth/end_survey".format(
                 self._site_prefix, course_id, xblock.location
             )
         })
-
+        
         response = requests.request("POST", self._api_eventsubscriptions_base_url, headers=headers, data=payload)
-
+        
         if response.ok:
             subscription_id = response.json()['result']['id']
             return subscription_id
@@ -101,36 +110,46 @@ class QualtricsApi():
 
         return None
 
-    def get_survey_response(self, survey_id, response_id, bearer_token):
+    def get_survey_response(self, survey_id, response_id):
         """
         Retrieve survey response for learner.
         """
+        
         url = "{}/{}/responses/{}".format(self._api_surveys_base_url, survey_id, response_id)
 
         payload = {}
-        headers = {
-            "authorization": "bearer " + bearer_token,
-        }
+        headers = self.get_headers()
+       
         response_survey = requests.request("GET", url, headers=headers, data=payload)
         self._log_if_raised(response_survey, payload)
 
         return response_survey
 
-    def get_oauth_token(self): 
-        url = "https://clemson.qualtrics.com/oauth2/token"
+    def get_oauth_token(self):
+        """
+        Checks for valid auth token in cache and returns it, otherwise a new one is generated and saved to cache
+        """
+        token_cached = self.token_cache.get('qualtrics_api_auth_token')
 
-        # TODO: Find way to store id and secret as environment variables for each client
-        payload= {'client_id': '4034ac7845f121397cfffdbcd5f45e59', 'client_secret': 'p3Tpxy4FnppHaVowFJfAUTlgiFkx3JzFivudjg1dW8YafVFqEB0jz7EIcSE4EabK','grant_type': 'client_credentials','scope': 'write:subscriptions read:survey_responses'}
-        files=[
+        if token_cached is not None:
+            return token_cached
+        else:
+            url = settings.QUALTRICS_OAUTH_URL
 
-        ]
-        headers = {
-        'Content-Type': 'application/json'
-        }
+            clientId = settings.QUALTRICS_CLIENT_ID
+            clientSecret = settings.QUALTRICS_CLIENT_SECRET
 
-        response = requests.request("POST", url, headers=headers, data=payload, files=files)
+            payload= {'grant_type': 'client_credentials','scope': 'write:subscriptions read:survey_responses'}
 
-        print(response.text)
-        return response.text
+            response = requests.post(url, auth=(clientId, clientSecret), data=payload)
+            
+            if response.ok:
+                token = response.json()['access_token']
+                self.token_cache.set('qualtrics_api_auth_token', token, getattr(settings, 'QUALTRICS_API_TOKEN_EXPIRATION', 3599))  #24h
+                return token
+
+            else:
+                response.raise_for_status()
+          
 
     
