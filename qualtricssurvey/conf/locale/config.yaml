@@ -1,0 +1,10 @@
+# Configuration for i18n workflow.
+
+locales:
+    - en  # English - Source Language
+
+# Directories we don't search for strings.
+ignore_dirs:
+    - '*/css'
+    - 'public/js/translations'
+    - 'public/js/vendor'
