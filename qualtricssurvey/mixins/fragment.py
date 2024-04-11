@@ -8,7 +8,7 @@ split into its own library.
 
 from django.template.context import Context
 from xblock.core import XBlock
-from xblock.fragment import Fragment
+from web_fragments.fragment import Fragment
 
 
 class XBlockFragmentBuilderMixin:
