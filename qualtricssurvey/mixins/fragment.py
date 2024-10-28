@@ -55,6 +55,7 @@ class XBlockFragmentBuilderMixin:
 
     def build_fragment(
             self,
+            *,
             template='',
             context=None,
             css=None,
