@@ -70,7 +70,6 @@ class QualtricsSurveyModelMixin:
         help=_('This is the name of your university.'),
     )
 
-    # pylint: disable=no-member
     def get_anon_id(self):
         """
         Return an anonymous user id
