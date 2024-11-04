@@ -10,7 +10,7 @@ asgiref==3.8.1
     # via django
 django==4.2.16
     # via
-    #   -c /home/runner/work/xblock-qualtrics-survey/xblock-qualtrics-survey/requirements/common_constraints.txt
+    #   -c requirements/common_constraints.txt
     #   -r requirements/base.in
 fs==2.4.16
     # via xblock
