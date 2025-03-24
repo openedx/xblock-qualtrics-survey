@@ -14,7 +14,7 @@ asgiref==3.8.1
     #   django
 astroid==3.3.9
     # via pylint
-coverage==7.7.0
+coverage==7.7.1
     # via -r requirements/test.txt
 dill==0.3.9
     # via pylint
@@ -26,7 +26,7 @@ dnspython==2.7.0
     # via
     #   -r requirements/test.txt
     #   pymongo
-edx-opaque-keys==2.11.0
+edx-opaque-keys==2.12.0
     # via -r requirements/test.txt
 fs==2.4.16
     # via
@@ -55,13 +55,13 @@ pbr==6.1.1
     # via
     #   -r requirements/test.txt
     #   stevedore
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via pylint
 pycodestyle==2.12.1
     # via -r requirements/quality.in
-pylint==3.3.5
+pylint==3.3.6
     # via -r requirements/quality.in
-pymongo==4.11.2
+pymongo==4.11.3
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
