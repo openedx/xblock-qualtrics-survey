@@ -63,7 +63,7 @@ urllib3==2.2.3
     # via
     #   -c requirements/common_constraints.txt
     #   requests
-virtualenv==20.29.3
+virtualenv==20.30.0
     # via
     #   -r requirements/tox.txt
     #   tox

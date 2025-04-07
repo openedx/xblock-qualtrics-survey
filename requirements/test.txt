@@ -18,7 +18,7 @@ pymongo==4.11.3
     # via edx-opaque-keys
 stevedore==5.4.1
     # via edx-opaque-keys
-typing-extensions==4.13.0
+typing-extensions==4.13.1
     # via edx-opaque-keys
 
 # The following packages are considered to be unsafe in a requirements file:
