@@ -14,11 +14,11 @@ asgiref==3.8.1
     #   django
 astroid==3.3.10
     # via pylint
-coverage==7.8.0
+coverage==7.9.1
     # via -r requirements/test.txt
 dill==0.4.0
     # via pylint
-django==4.2.21
+django==4.2.23
     # via
     #   -c requirements/common_constraints.txt
     #   -r requirements/base.txt
@@ -61,7 +61,7 @@ pycodestyle==2.13.0
     # via -r requirements/quality.in
 pylint==3.3.7
     # via -r requirements/quality.in
-pymongo==4.12.1
+pymongo==4.13.1
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
@@ -94,9 +94,9 @@ stevedore==5.4.1
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
-tomlkit==0.13.2
+tomlkit==0.13.3
     # via pylint
-typing-extensions==4.13.2
+typing-extensions==4.14.0
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
