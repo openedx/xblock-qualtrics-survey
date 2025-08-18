@@ -4,7 +4,7 @@
 #
 #    make upgrade
 #
-coverage==7.8.0
+coverage==7.10.4
     # via -r requirements/test.in
 dnspython==2.7.0
     # via pymongo
@@ -12,13 +12,13 @@ edx-opaque-keys==3.0.0
     # via -r requirements/test.in
 mock==5.2.0
     # via -r requirements/test.in
-pbr==6.1.1
+pbr==7.0.0
     # via stevedore
-pymongo==4.12.1
+pymongo==4.14.0
     # via edx-opaque-keys
 stevedore==5.4.1
     # via edx-opaque-keys
-typing-extensions==4.13.2
+typing-extensions==4.14.1
     # via edx-opaque-keys
 
 # The following packages are considered to be unsafe in a requirements file:
