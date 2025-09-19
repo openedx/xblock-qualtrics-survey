@@ -8,7 +8,7 @@ from os import path
 from setuptools import find_packages, setup
 
 
-version = '2.1.0'
+version = '2.1.1'
 description = __doc__.strip().split('\n')[0]
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.rst')) as file_in:
@@ -88,7 +88,7 @@ setup(
     long_description=long_description,
     author='David Adams',
     author_email='dcadams@stanford.edu',
-    url='https://github.com/Stanford-Online/xblock-qualtrics-survey',
+    url='https://github.com/openedx/xblock-qualtrics-survey',
     license='AGPL-3.0',
     packages=find_packages(
         include=['qualtricssurvey', 'qualtricssurvey.*'],
