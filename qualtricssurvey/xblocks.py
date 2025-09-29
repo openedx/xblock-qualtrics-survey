@@ -10,6 +10,7 @@ from .views import QualtricsSurveyViewMixin
 
 
 @XBlock.needs('i18n')
+@XBlock.wants('user')
 class QualtricsSurvey(
         QualtricsSurveyModelMixin,
         QualtricsSurveyViewMixin,
