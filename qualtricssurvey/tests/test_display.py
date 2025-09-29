@@ -71,9 +71,12 @@ class TestRender(unittest.TestCase):
         self.assertIn('Begin Survey', content)
         self.assertIn('target="_blank"', content)
         self.assertIn(
-            'href="https://stanforduniversity.qualtrics.com/jfe/form/Enter',
+            'href="https://pennstate.qualtrics.com/jfe/form/Enter your survey '
+            'ID here.?',
             content
         )
+        self.assertIn('example_param_1=example_value_1', content)
+        self.assertIn('example_param_2=example_value_2', content)
         self.assertIn('?edxuid=anon-user-id', content)
         self.assertIn(xblock.message, content)
 
@@ -97,9 +100,9 @@ class TestRender(unittest.TestCase):
         content = xblock.student_view().content
 
         self.assertIn('?edxuid=12345', content)
-        self.assertIn('&email=user%40example.com', content)
-        self.assertIn('&foo=bar', content)
-        self.assertIn('&baz=', content)
+        self.assertIn('&amp;email=user%40example.com', content)
+        self.assertIn('&amp;foo=bar', content)
+        self.assertIn('&amp;baz=', content)
 
     def test_custom_message(self):
         """
