@@ -4,7 +4,7 @@
 #
 #    make upgrade
 #
-coverage==7.10.7
+coverage==7.11.0
     # via -r requirements/test.in
 dnspython==2.8.0
     # via pymongo
@@ -12,7 +12,7 @@ edx-opaque-keys==3.0.0
     # via -r requirements/test.in
 mock==5.2.0
     # via -r requirements/test.in
-pymongo==4.15.2
+pymongo==4.15.3
     # via edx-opaque-keys
 stevedore==5.5.0
     # via edx-opaque-keys

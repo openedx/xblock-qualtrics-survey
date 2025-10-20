@@ -12,9 +12,9 @@ asgiref==3.10.0
     # via
     #   -r requirements/base.txt
     #   django
-astroid==3.3.11
+astroid==4.0.1
     # via pylint
-coverage==7.10.7
+coverage==7.11.0
     # via -r requirements/test.txt
 dill==0.4.0
     # via pylint
@@ -32,7 +32,7 @@ fs==2.4.16
     # via
     #   -r requirements/base.txt
     #   xblock
-isort==6.1.0
+isort==7.0.0
     # via pylint
 lxml==6.0.2
     # via
@@ -51,13 +51,13 @@ mccabe==0.7.0
     # via pylint
 mock==5.2.0
     # via -r requirements/test.txt
-platformdirs==4.4.0
+platformdirs==4.5.0
     # via pylint
 pycodestyle==2.14.0
     # via -r requirements/quality.in
-pylint==3.3.9
+pylint==4.0.1
     # via -r requirements/quality.in
-pymongo==4.15.2
+pymongo==4.15.3
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
