@@ -42,7 +42,7 @@ clean:  ## Remove build artifacts
 
 .PHONY: requirements
 requirements: requirements_js requirements_py  ## Install all required packages
-	pip install -r requirements/pip-tools.txt
+	pip install -r requirements/pip_tools.txt
 
 .PHONY: requirements_py
 requirements_py:  # Install required python packages
