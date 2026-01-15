@@ -18,17 +18,17 @@ jobs:
         toxenv: [django42, django52, quality, csslint, eslint]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: setup python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Set BOTO_CONFIG value
       run: export BOTO_CONFIG=/dev/null
 
-    - name: Install pip
-      run: pip install -r requirements/pip.txt
+    - name: Install pip and pip-tools
+      run: pip install -r requirements/pip_tools.txt
 
     - name: Install Dependencies
       run: make requirements_ci
