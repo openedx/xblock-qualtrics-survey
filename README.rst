@@ -1,16 +1,25 @@
-.. image:: https://img.shields.io/badge/status-deprecated-red
+.. image:: https://img.shields.io/badge/status-archived-red
    :alt: Status
 
 .. warning::
 
-   **This Repository is Deprecated**
+   ⚠️ Repository Migration Notice ⚠️
+   ***********************************
 
-   This repository is no longer maintained.
+   **Repository Migration:**
+   This ``xblock-qualtrics-survey`` repository is being archived. The Qualtrics Survey XBlock
+   is moving to the `xblocks-extra <https://github.com/openedx/xblocks-extra>`_ repository,
+   which consolidates optional add-on XBlocks for the Open edX platform.
 
-   The Qualtrics Survey XBlock has been moved to:
-   https://github.com/openedx/xblocks-extra
+   The migration is being completed through this Pull Request:
+   `openedx/xblocks-extra#15 — feat: add Qualtrics Survey XBlock <https://github.com/openedx/xblocks-extra/pull/15>`_
 
-   Please use the new repository for all future work.
+   **Archival:** This repository will become read-only once the migration is complete.
+   No further updates or changes will be accepted here.
+
+   Please use `xblocks-extra <https://github.com/openedx/xblocks-extra>`_ for all future work.
+   If you have any questions or concerns, please use the
+   `xblocks-extra issue tracker <https://github.com/openedx/xblocks-extra/issues>`_.
 
 Qualtrics Survey
 ==================
