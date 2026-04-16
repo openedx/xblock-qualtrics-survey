@@ -8,7 +8,7 @@ from os import path
 from setuptools import find_packages, setup
 
 
-version = '2.1.1'
+version = '3.0.0'
 description = __doc__.strip().split('\n')[0]
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.rst')) as file_in:
